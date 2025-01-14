@@ -55,6 +55,9 @@ FONT24 = pygame.font.Font(None, 24)
 
 MAX_ENERGY = 3000
 WARP_ENERGY_PER = 100
+RAISE_SHIELD_PER = 50
+
+SHIELD_LEVELS = [0, 25, 50, 75, 100]
 
 ### END CONSTANTS ###########################################################################################################
 
@@ -80,7 +83,9 @@ ALARM_CHANNEL = pygame.mixer.Channel(1)
 RED_ALERT = pygame.mixer.Sound("alarm01.mp3")
 
 WEAPON_CHANNEL = pygame.mixer.Channel(2)
+WEAPON_CHANNEL.set_volume(0.25)
 PHASER_SOUND = pygame.mixer.Sound("earthling-pd.wav")
+MISSILE_SOUND = pygame.mixer.Sound("earthling-mx.wav")
 
 EXPLOSION_CHANNEL = pygame.mixer.Channel(3)
 EXPLOSION_CHANNEL.set_volume(0.1)
@@ -134,6 +139,8 @@ class Player(pygame.sprite.Sprite):
         self.energy = MAX_ENERGY
 
         self.shields = 0
+        self.shields_on = False
+        self.shield_level = 0
         self.num_enemies = 20
         self.max_warp = min(10, self.energy // WARP_ENERGY_PER)
 
@@ -227,6 +234,23 @@ class Player(pygame.sprite.Sprite):
 
         self.max_warp = min(10, self.energy // WARP_ENERGY_PER)
 
+
+    def shields_toggle(self):
+        if self.shields_on:
+            print("toggle shield on")
+            self.shields_on = False
+            self.shields = 0
+        else:
+            print("toggle shield off")
+            if self.energy >= RAISE_SHIELD_PER:
+                self.shields_on = True
+                self.energy -= RAISE_SHIELD_PER
+                self.shields = self.shield_level * 10
+
+                
+
+
+
         
     def fire_phasers(self, phasor_group):
         """Fire phasers and damage enemies in the current sector."""
@@ -319,6 +343,19 @@ class Player(pygame.sprite.Sprite):
                     # Re-enter the sector to ensure state consistency
                     self.enter_sector(self.quadrant_x, self.quadrant_y)
 
+    def fire_torpedo(self, phasor_group, player):
+        """Fire a torpedo in a chosen direction."""
+        # Prompt the player for a direction
+        direction = prompt_direction(SCREEN)
+        if not direction:
+            return  # Exit if no direction is chosen
+
+        # Create the torpedo object
+        torpedo = Torpedo(self.grid_x, self.grid_y, player, phasor_group, direction)
+        phasor_group.add(torpedo)
+        WEAPON_CHANNEL.play(MISSILE_SOUND)
+
+
 
     def activate_warp(self):
         """Prompt the player to select a warp factor and move the player."""
@@ -355,7 +392,11 @@ class Player(pygame.sprite.Sprite):
             new_y = max(0, min(GRID_SIZE - 1, new_y))
 
             print(f"Warping to sector ({new_x}, {new_y}) at Warp {warp_factor}.")
-            self.energy -= (warp_factor * WARP_ENERGY_PER)
+            if self.shields_on:
+                self.energy -= (warp_factor * WARP_ENERGY_PER)*2
+            else:
+                self.energy -= (warp_factor * WARP_ENERGY_PER)
+
             EXPLOSION_CHANNEL.play(WARP_SOUND)
 
             # Enter the new sector
@@ -400,13 +441,20 @@ class Player(pygame.sprite.Sprite):
             self.grid_y = new_y
             self.update_position()
         else:
+
             # Handle moving to the next quadrant if out of bounds (same as before)
             if dx == 1:  # Moving right
                 if self.quadrant_x < QUADRANT_SIZE - 1:
                     self.quadrant_x += 1
                     self.grid_x = 0
                     self.current_sector = self.enter_sector(self.quadrant_x, self.quadrant_y)
-                    self.energy -= 100
+                    warp_factor = 1
+                    print(f"Warping to sector ({self.quadrant_x,}, {self.quadrant_y}) at Warp {warp_factor}.")
+                    if self.shields_on:
+                        self.energy -= (warp_factor * WARP_ENERGY_PER)*2
+                    else:
+                        self.energy -= (warp_factor * WARP_ENERGY_PER)
+
                     EXPLOSION_CHANNEL.play(WARP_SOUND)
 
             elif dx == -1:  # Moving left
@@ -414,21 +462,36 @@ class Player(pygame.sprite.Sprite):
                     self.quadrant_x -= 1
                     self.grid_x = GRID_SIZE - 1
                     self.current_sector = self.enter_sector(self.quadrant_x, self.quadrant_y)
-                    self.energy -= 100
+                    warp_factor = 1
+                    print(f"Warping to sector ({self.quadrant_x,}, {self.quadrant_y}) at Warp {warp_factor}.")
+                    if self.shields_on:
+                        self.energy -= (warp_factor * WARP_ENERGY_PER)*2
+                    else:
+                        self.energy -= (warp_factor * WARP_ENERGY_PER)
                     EXPLOSION_CHANNEL.play(WARP_SOUND)
             elif dy == 1:  # Moving down
                 if self.quadrant_y < QUADRANT_SIZE - 1:
                     self.quadrant_y += 1
                     self.grid_y = 0
                     self.current_sector = self.enter_sector(self.quadrant_x, self.quadrant_y)
-                    self.energy -= 100
+                    warp_factor = 1
+                    print(f"Warping to sector ({self.quadrant_x,}, {self.quadrant_y}) at Warp {warp_factor}.")
+                    if self.shields_on:
+                        self.energy -= (warp_factor * WARP_ENERGY_PER)*2
+                    else:
+                        self.energy -= (warp_factor * WARP_ENERGY_PER)
                     EXPLOSION_CHANNEL.play(WARP_SOUND)
             elif dy == -1:  # Moving up
                 if self.quadrant_y > 0:
                     self.quadrant_y -= 1
                     self.grid_y = GRID_SIZE - 1
                     self.current_sector = self.enter_sector(self.quadrant_x, self.quadrant_y)
-                    self.energy -= 100
+                    warp_factor = 1
+                    print(f"Warping to sector ({self.quadrant_x,}, {self.quadrant_y}) at Warp {warp_factor}.")
+                    if self.shields_on:
+                        self.energy -= (warp_factor * WARP_ENERGY_PER)*2
+                    else:
+                        self.energy -= (warp_factor * WARP_ENERGY_PER)
                     EXPLOSION_CHANNEL.play(WARP_SOUND)
             
             self.update_position()
@@ -470,6 +533,107 @@ class Phasor_blast(pygame.sprite.Sprite):
     def draw(self, screen):
         """Draw the phasor blast."""
         pygame.draw.line(SCREEN,WHITE,(self.origin_x, self.origin_y),(self.enemy_x, self.enemy_y), 2)
+
+class Torpedo(pygame.sprite.Sprite):
+    def __init__(self, origin_x, origin_y, owner, group, direction, speed=1, damage=1000):
+        super().__init__()
+        self.origin_x = origin_x
+        self.origin_y = origin_y
+        self.grid_x = origin_x
+        self.grid_y = origin_y
+        self.direction = direction
+        self.speed = speed
+        self.damage = damage
+        self.owner = owner
+        self.group = group
+        self.image = pygame.Surface((5, 5), pygame.SRCALPHA)  # Small visual for the torpedo
+        pygame.draw.circle(self.image, WHITE, (2, 2), 2)
+        self.rect = self.image.get_rect(center=(GRID_ORIGIN_X + origin_x * SQUARE_SIZE + SQUARE_SIZE // 2,
+                                                GRID_ORIGIN_Y + origin_y * SQUARE_SIZE + SQUARE_SIZE // 2))
+
+    def move(self):
+        """Move the torpedo based on its direction and speed."""
+        if self.direction == "N":
+            self.grid_y -= self.speed
+        elif self.direction == "S":
+            self.grid_y += self.speed
+        elif self.direction == "E":
+            self.grid_x += self.speed
+        elif self.direction == "W":
+            self.grid_x -= self.speed
+
+        # Update the rect position for rendering
+        self.rect.center = (GRID_ORIGIN_X + self.grid_x * SQUARE_SIZE + SQUARE_SIZE // 2,
+                            GRID_ORIGIN_Y + self.grid_y * SQUARE_SIZE + SQUARE_SIZE // 2)
+
+    def out_of_bounds(self):
+        """Check if the torpedo is out of quadrant bounds."""
+        return not (0 <= self.grid_x < GRID_SIZE and 0 <= self.grid_y < GRID_SIZE)
+
+    def check_collision(self, enemies):
+        """Check if the torpedo collides with any enemies."""
+        for enemy in enemies:
+            if enemy.grid_x == self.grid_x and enemy.grid_y == self.grid_y:
+                return enemy
+        return None
+
+    def update(self):
+
+        self.move()
+
+        # Check if the torpedo is out of bounds
+        if self.out_of_bounds():
+            print("Torpedo exited the quadrant.")
+            self.group.remove(self)
+            self.kill()
+            
+
+        # Check for collisions with enemies
+        hit_enemy = self.check_collision(self.owner.current_sector.enemies)
+        if hit_enemy:
+            # Apply damage to the enemy
+            shields_before = hit_enemy.shields
+            hull_before = hit_enemy.hull
+
+            if self.damage >= hit_enemy.shields:
+                remaining_damage = self.damage - hit_enemy.shields
+                hit_enemy.shields = 0
+                hit_enemy.hull -= remaining_damage
+            else:
+                hit_enemy.shields -= self.damage
+
+            print(f"Torpedo hit {hit_enemy.name}!")
+            print(f"Shields: {shields_before} -> {hit_enemy.shields}")
+            print(f"Hull: {hull_before} -> {hit_enemy.hull}")
+
+            # Create an explosion
+            explosion_x = GRID_ORIGIN_X + hit_enemy.grid_x * SQUARE_SIZE + SQUARE_SIZE // 2
+            explosion_y = GRID_ORIGIN_Y + hit_enemy.grid_y * SQUARE_SIZE + SQUARE_SIZE // 2
+            explosion = Explosion((explosion_x, explosion_y), max_size=SQUARE_SIZE, start_size=5)
+            self.group.add(explosion)
+            EXPLOSION_CHANNEL.play(SHIP_DEATH_SOUND)
+
+            # Destroy the enemy if hull <= 0
+            if hit_enemy.hull <= 0:
+                print(f"{hit_enemy.name} destroyed!")
+                hit_enemy.die()
+                self.owner.current_sector.enemies.remove(hit_enemy)
+
+            self.kill()
+            self.group.remove(self)
+        
+        # Check if all enemies are destroyed, and play victory sound
+        if len(self.owner.current_sector.enemies) == 0:
+            play_delayed_sound(MUSIC_CHANNEL, random.choice(VICTORY_DITTIES), 1)
+
+        # Delay to simulate travel
+        pygame.time.wait(100)
+
+    print("Torpedo sequence complete.")
+
+    def draw(self, screen):
+        """Draw the torpedo."""
+        pygame.draw.circle(screen, WHITE, self.rect.center, 5)
 
 
 class Explosion(pygame.sprite.Sprite):
@@ -714,6 +878,21 @@ def draw_sector_map(player):
                 else:
                     pygame.draw.rect(SCREEN, GREEN, rect,1)  # Highlight in Green (or another color)
                 
+                if player.shields >=1 :
+                    if player.shields_on:
+                        player_screen_x = GRID_ORIGIN_X + (col * SQUARE_SIZE)
+                        player_screen_y = GRID_ORIGIN_Y + (row * SQUARE_SIZE)
+                        # Calculate the center of the square for the circle
+                        center_x = player_screen_x + SQUARE_SIZE // 2
+                        center_y = player_screen_y + SQUARE_SIZE // 2
+                        
+
+                        # Draw a blue circle around the player
+                        thickness = int(player.shield_level//10 ) -1
+
+                        radius = SQUARE_SIZE // 2 + player.shield_level/25  # Radius is half the square size
+                        pygame.draw.circle(SCREEN, BLUE, (center_x, center_y), radius, thickness)  # 2 is the thickness of the circle's border
+
 
             else:
                 ...
@@ -758,52 +937,74 @@ def draw_reports(player):
     report_pos_y = GRID_ORIGIN_Y
 
     # Report data
-    draw_report_line("STARDATE:", str(player.stardate), report_pos_y)
+    draw_report_line("STARDATE:", str(player.stardate), report_pos_y, player)
     report_pos_y += FONT24.get_height()
 
-    draw_report_line("DAYS LEFT:", str(player.daysleft), report_pos_y)
+    draw_report_line("DAYS LEFT:", str(player.daysleft), report_pos_y, player)
     report_pos_y += FONT24.get_height()
 
-    draw_report_line("CONDITION:", player.condition, report_pos_y)
+    draw_report_line("CONDITION:", player.condition, report_pos_y, player)
     report_pos_y += FONT24.get_height()
 
-    draw_report_line("QUADRANT:", f"{player.quadrant_x + 1} , {player.quadrant_y + 1}", report_pos_y)
+    draw_report_line("QUADRANT:", f"{player.quadrant_x + 1} , {player.quadrant_y + 1}", report_pos_y, player)
     report_pos_y += FONT24.get_height()
 
-    draw_report_line("SECTOR:", f"{player.grid_x + 1} , {player.grid_y + 1}", report_pos_y)
+    draw_report_line("SECTOR:", f"{player.grid_x + 1} , {player.grid_y + 1}", report_pos_y, player)
     report_pos_y += FONT24.get_height()
 
-    draw_report_line("TORPEDOS:", str(player.torpedo_qty), report_pos_y)
+    draw_report_line("TORPEDOS:", str(player.torpedo_qty), report_pos_y, player)
     report_pos_y += FONT24.get_height()
 
-    draw_report_line("ENERGY:", str(player.energy), report_pos_y)
+    draw_report_line("ENERGY:", str(player.energy), report_pos_y, player)
     report_pos_y += FONT24.get_height()
 
-    draw_report_line("SHIELDS:", str(player.shields), report_pos_y)
+    draw_report_line("SHIELDS:", str(player.shields), report_pos_y, player)
+    report_pos_y += FONT24.get_height()
+
+    draw_report_line("SHIELD LEVEL:", str(player.shield_level), report_pos_y, player)
     report_pos_y += FONT24.get_height()
 
     
-    draw_report_line("ENEMIES:", str(player.num_enemies), report_pos_y)
+    draw_report_line("ENEMIES:", str(player.num_enemies), report_pos_y, player)
     report_pos_y += FONT24.get_height()
 
-    draw_report_line("MAX WARP:", str(player.max_warp), report_pos_y)
+    draw_report_line("MAX WARP:", str(player.max_warp), report_pos_y, player)
 
 
 # Draw each report line
-def draw_report_line(title, value, y_pos):
-    # Render and draw the title
-    title_surface = FONT24.render(title, True, GREEN)
-    title_rect = title_surface.get_rect(
-        topleft=(SCREEN_WIDTH-REPORT_TITLE_MARGIN, y_pos)
-    )
-    SCREEN.blit(title_surface, title_rect)
+def draw_report_line(title, value, y_pos, player):
+    
 
     # Render and draw the value
     value_color = GREEN
+    title_color =  GREEN
 
     if value == "GREEN": value_color = GREEN
     elif value == "BLUE": value_color = BLUE
     elif value == "RED": value_color = RED
+
+    if (title == "SHIELDS:"): 
+        if player.shields_on:
+            value_color = WHITE
+            title_color = WHITE
+            title = "SHIELDS UP:"
+        else:
+            value_color = GREEN 
+            title = "SHIELDS DOWN:"
+
+    elif  title == "SHIELD LEVEL:":
+        if player.shields_on:
+            value_color = WHITE
+            title_color = WHITE
+        else:
+            value_color = GREEN 
+
+    # Render and draw the title
+    title_surface = FONT24.render(title, True, title_color)
+    title_rect = title_surface.get_rect(
+        topleft=(SCREEN_WIDTH-REPORT_TITLE_MARGIN, y_pos)
+    )
+    SCREEN.blit(title_surface, title_rect)
 
     value_surface = FONT24.render(value, True, value_color)
     value_rect = value_surface.get_rect(
@@ -1043,6 +1244,8 @@ def main():
 
     phasor_group = pygame.sprite.Group() 
 
+    current_index = SHIELD_LEVELS.index(player.shield_level)  # Find the current level's index
+
     while running:
 
         ### UPDATE EVERYTHING ###############################################################################################
@@ -1077,8 +1280,37 @@ def main():
                 elif event.key == pygame.K_p:
                     player.fire_phasers(phasor_group)
 
+                elif event.key == pygame.K_t:
+                    player.fire_torpedo(phasor_group, player)
+
                 elif event.key == pygame.K_w:
                     player.activate_warp()
+
+                elif event.key == pygame.K_s:
+                    player.shields_toggle()
+
+                elif event.key == pygame.K_KP_PLUS:
+                    # Increase the shield level
+                    if current_index < len(SHIELD_LEVELS) - 1:
+                        current_index += 1
+                        player.shield_level = SHIELD_LEVELS[current_index]
+                        print(f"Shield level increased to {player.shield_level}%")
+                        if player.shields_on:
+                            player.shields = player.shield_level * 10
+                        else:
+                            player.shields =0
+                        player.energy -= RAISE_SHIELD_PER
+
+                elif event.key == pygame.K_KP_MINUS:
+                    # Decrease the shield level
+                    if current_index > 0:
+                        current_index -= 1
+                        player.shield_level = SHIELD_LEVELS[current_index]
+                        print(f"Shield level decreased to {player.shield_level}%")
+                        if player.shields_on:
+                            player.shields = player.shield_level * 10
+                        else:
+                            player.shields = 0
 
 
 
