@@ -2,6 +2,7 @@ import pygame
 import sys
 import random
 import math
+import threading
 
 pygame.init()
 
@@ -42,6 +43,7 @@ DARK_GREY = (50, 50, 50)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 DARK_RED = (50, 0, 0)
+ORANGE = (255, 165, 0)
 YELLOW = (255, 255, 0)
 GREEN = (0, 255, 0)
 DARK_GREEN =(0,50,0)
@@ -50,6 +52,9 @@ DARK_BLUE = (0, 0, 50)
 
 # Fonts
 FONT24 = pygame.font.Font(None, 24)
+
+MAX_ENERGY = 3000
+WARP_ENERGY_PER = 100
 
 ### END CONSTANTS ###########################################################################################################
 
@@ -67,6 +72,36 @@ ENEMY_SHIP = pygame.image.load("avenger.png").convert_alpha()
 GRID_BACKGROUND = pygame.image.load("starfield.png").convert_alpha()
 GRID_BACKGROUND = pygame.transform.scale(GRID_BACKGROUND, (GRID_SIZE * SQUARE_SIZE, GRID_SIZE * SQUARE_SIZE)) 
 
+# AUDIO CONSTANTS -------------------------------------------------------------
+pygame.mixer.init()
+pygame.mixer.set_num_channels(16)
+
+ALARM_CHANNEL = pygame.mixer.Channel(1)
+RED_ALERT = pygame.mixer.Sound("alarm01.mp3")
+
+WEAPON_CHANNEL = pygame.mixer.Channel(2)
+PHASER_SOUND = pygame.mixer.Sound("earthling-pd.wav")
+
+EXPLOSION_CHANNEL = pygame.mixer.Channel(3)
+EXPLOSION_CHANNEL.set_volume(0.1)
+SHIP_DEATH_SOUND = pygame.mixer.Sound("shipdies.wav")
+WARP_SOUND = pygame.mixer.Sound("tng_slowwarp_clean.mp3")
+
+MUSIC_CHANNEL = pygame.mixer.Channel(4)
+MUSIC_CHANNEL.set_volume(.30)
+
+VICTORY_DITTY = pygame.mixer.Sound("earthling-ditty.mp3")
+VICTORY_DITTY_PLUS10 = pygame.mixer.Sound("earthling-ditty_plus10.mp3")
+VICTORY_DITTY_MINUS10 = pygame.mixer.Sound("earthling-ditty_minus10.mp3")
+VICTORY_DITTY_PLUS20 = pygame.mixer.Sound("earthling-ditty_plus20.mp3")
+VICTORY_DITTY_MINUS20 = pygame.mixer.Sound("earthling-ditty_minus20.mp3")
+VICTORY_DITTY_PLUS30 = pygame.mixer.Sound("earthling-ditty_plus30.mp3")
+VICTORY_DITTY_MINUS30 = pygame.mixer.Sound("earthling-ditty_minus30.mp3")
+
+VICTORY_DITTIES = [VICTORY_DITTY,VICTORY_DITTY_PLUS10, VICTORY_DITTY_MINUS10, VICTORY_DITTY_PLUS20,VICTORY_DITTY_MINUS20, VICTORY_DITTY_PLUS30, VICTORY_DITTY_MINUS30]
+# -----------------------------------------------------------------------------
+
+
 ### END LOAD ASSETS #########################################################################################################
 
 
@@ -83,7 +118,7 @@ class Player(pygame.sprite.Sprite):
         self.grid_x = 4  # Starting grid position (column)
         self.grid_y = 3  # Starting grid position (row)
         self.last_move_direction = "up"
-        self.update_position()
+        
 
 
         self.stardate = 3801
@@ -96,16 +131,19 @@ class Player(pygame.sprite.Sprite):
         self.quadrant_y = 0
 
         self.torpedo_qty = 10
-        self.energy = 1000 
+        self.energy = MAX_ENERGY
+
         self.shields = 0
         self.num_enemies = 20
-        self.max_warp = 8
+        self.max_warp = min(10, self.energy // WARP_ENERGY_PER)
 
         self.sensor_range = 1
 
+        self.update_position()
 
         self.all_sectors = []  # Dictionary to store Sector objects for each (quadrant_x, quadrant_y)
         self.generate_all_sectors()  # Generate all sectors when the game starts
+        self.current_sector = None
         self.current_sector = self.enter_sector(self.quadrant_x, self.quadrant_y)  # Ensure player starts on an empty square
 
 
@@ -125,15 +163,32 @@ class Player(pygame.sprite.Sprite):
     def enter_sector(self, quadrant_x, quadrant_y):
         """Ensure player enters the sector without starting on a star or base."""
 
+
+        self.condition = "GREEN"
+
+        enemy_count_ttl = 0
+        for sector in self.all_sectors:
+            enemy_count_ttl += sector.count_enemies()
+        self.num_enemies = enemy_count_ttl
+
         for sector in self.all_sectors:
             if (self.quadrant_x == sector.quadrant_x) and (self.quadrant_y == sector.quadrant_y):
-                
 
-        
- 
                 # Ensure player's starting position isn't on a star or base
                 while sector.is_star_at(self.grid_x, self.grid_y) or sector.is_base_at(self.grid_x, self.grid_y) or sector.is_enemy_at(self.grid_x, self.grid_y):
                     self.move_away_from_star_or_base(sector)
+
+                if sector != self.current_sector:
+
+
+                    if sector.count_enemies() >=1 :
+                        ALARM_CHANNEL.play(RED_ALERT,1)
+
+
+                    for enemy in sector.enemies:
+                        print(enemy.name, " : ", enemy.hull)
+
+
 
                 return sector
 
@@ -165,7 +220,152 @@ class Player(pygame.sprite.Sprite):
         player_draw_y = GRID_ORIGIN_Y + (self.grid_y * SQUARE_SIZE)
         self.rect.topleft = (player_draw_x, player_draw_y)
 
+        if self.condition == "BLUE": self.energy = MAX_ENERGY
+
+        if self.energy >= MAX_ENERGY:
+            self.energy = MAX_ENERGY
+
+        self.max_warp = min(10, self.energy // WARP_ENERGY_PER)
+
         
+    def fire_phasers(self, phasor_group):
+        """Fire phasers and damage enemies in the current sector."""
+        num_enemy = self.current_sector.count_enemies()
+        
+        if num_enemy >= 1:
+
+            phaser_power = prompt_phaser_power(SCREEN)
+            if phaser_power > 0:
+
+                if phaser_power <= self.energy:
+                    
+                    self.energy -= phaser_power
+
+                    damage = phaser_power // num_enemy
+
+                    WEAPON_CHANNEL.play(PHASER_SOUND)
+
+                    # Apply damage to each enemy
+                    for enemy in self.current_sector.enemies:
+                        # Create and add a phasor blast
+                        phasor_blast = Phasor_blast(self.grid_x, self.grid_y, enemy.grid_x, enemy.grid_y)
+                        phasor_group.add(phasor_blast)
+
+                        distance = abs(math.sqrt((self.grid_x - enemy.grid_x) ** 2 + (self.grid_y - enemy.grid_y) ** 2))
+                        
+
+                        range_reduction = (int(distance)-1) * 5
+
+                        
+                        remaining_damage = damage - range_reduction
+
+                        # Add randomness to the damage
+                        remaining_damage = int(remaining_damage * random.uniform(0.9, 1.1))  # ±10% random variance
+
+                        print("range", int(distance), " @ ", remaining_damage, " DMG")
+
+                        # Check and apply damage to shields first
+                        if enemy.shields > 0:
+                            shields_before = enemy.shields
+                            if remaining_damage >= enemy.shields:
+                                remaining_damage -= enemy.shields
+                                enemy.shields = 0  # Shields are fully depleted
+                                print(f"HIT! {enemy.name} SHIELDS: {shields_before} -> 0 (Shields Down!)")
+                            else:
+                                enemy.shields -= remaining_damage
+                                print(f"HIT! {enemy.name} SHIELDS: {shields_before} -> {enemy.shields}")
+                                remaining_damage = 0  # No damage left for the hull
+
+                        # If there is remaining damage, apply it to the hull
+                        if remaining_damage > 0:
+                            hull_before = enemy.hull
+                            enemy.hull -= remaining_damage
+                            print(f"HIT! {enemy.name} HULL: {hull_before} -> {enemy.hull}")
+
+                        # Reduce phaser power
+                        phaser_power -= damage
+
+                        # Remove destroyed enemies
+                        remaining_enemies = []
+                        for enemy in self.current_sector.enemies:
+                            if enemy.hull <= 0:
+
+                                print(f"{enemy.name} destroyed!")
+                                EXPLOSION_CHANNEL.play(SHIP_DEATH_SOUND)
+                                enemy_x =  GRID_ORIGIN_X + (enemy.grid_x * SQUARE_SIZE) + SQUARE_SIZE//2
+                                enemy_y =  GRID_ORIGIN_Y + (enemy.grid_y * SQUARE_SIZE) + SQUARE_SIZE//2
+                                enemy_position = (enemy_x, enemy_y)
+                                explosion = Explosion(enemy_position)
+                                phasor_group.add(explosion)
+                                enemy.die()
+                            else:
+                                remaining_enemies.append(enemy)
+
+                                enemy_x =  GRID_ORIGIN_X + (enemy.grid_x * SQUARE_SIZE) + SQUARE_SIZE//2
+                                enemy_y =  GRID_ORIGIN_Y + (enemy.grid_y * SQUARE_SIZE) + SQUARE_SIZE//2
+                                enemy_position = (enemy_x, enemy_y)
+                                explosion = Explosion(enemy_position, max_size=SQUARE_SIZE//3, start_size=1)
+                                phasor_group.add(explosion)
+
+                        # Update the sector's enemies list
+                        self.current_sector.enemies = remaining_enemies
+
+
+                    # Check if all enemies are destroyed, and play victory sound
+                    if len(self.current_sector.enemies) == 0:
+                        play_delayed_sound(MUSIC_CHANNEL, random.choice(VICTORY_DITTIES), 1)
+                    
+
+                    # Re-enter the sector to ensure state consistency
+                    self.enter_sector(self.quadrant_x, self.quadrant_y)
+
+
+    def activate_warp(self):
+        """Prompt the player to select a warp factor and move the player."""
+        warp_factor = prompt_warp_factor(SCREEN)
+
+        if warp_factor > 0:
+            # Ask for the direction (e.g., N, S, E, W)
+            direction = prompt_direction(SCREEN)
+
+            # Calculate the new sector based on the warp factor and direction
+            new_x, new_y = self.quadrant_x, self.quadrant_y
+            if direction == "N":
+                new_y -= warp_factor
+                self.last_move_direction = "up"
+                self.image = self.orig_image
+
+            elif direction == "S":
+                new_y += warp_factor
+                self.last_move_direction = "down"
+                self.image = pygame.transform.flip(self.orig_image, False, True)
+
+            elif direction == "E":
+                self.last_move_direction = "right"
+                new_x += warp_factor
+                self.image = pygame.transform.rotate(self.orig_image, -90)
+
+            elif direction == "W":
+                self.last_move_direction = "left"
+                new_x -= warp_factor
+                self.image = pygame.transform.rotate(self.orig_image, 90)
+
+            # Clamp the new position to within the grid boundaries
+            new_x = max(0, min(GRID_SIZE - 1, new_x))
+            new_y = max(0, min(GRID_SIZE - 1, new_y))
+
+            print(f"Warping to sector ({new_x}, {new_y}) at Warp {warp_factor}.")
+            self.energy -= (warp_factor * WARP_ENERGY_PER)
+            EXPLOSION_CHANNEL.play(WARP_SOUND)
+
+            # Enter the new sector
+            self.quadrant_x = new_x
+            self.quadrant_y = new_y
+            self.current_sector = self.enter_sector(new_x, new_y)
+            self.update_position()
+
+
+
 
 
     def move(self, dx, dy):
@@ -173,6 +373,12 @@ class Player(pygame.sprite.Sprite):
         # Check if the player will move out of the current sector (grid bounds)
         new_x = self.grid_x + dx
         new_y = self.grid_y + dy
+
+        self.energy -= abs(dx)
+        self.energy -= abs(dy)
+
+        if dx == 0 and dy == 0:
+            self.energy += 1
 
         # If within bounds, check if the new position is blocked by a star
         if 0 <= new_x < GRID_SIZE and 0 <= new_y < GRID_SIZE:
@@ -200,21 +406,30 @@ class Player(pygame.sprite.Sprite):
                     self.quadrant_x += 1
                     self.grid_x = 0
                     self.current_sector = self.enter_sector(self.quadrant_x, self.quadrant_y)
+                    self.energy -= 100
+                    EXPLOSION_CHANNEL.play(WARP_SOUND)
+
             elif dx == -1:  # Moving left
                 if self.quadrant_x > 0:
                     self.quadrant_x -= 1
                     self.grid_x = GRID_SIZE - 1
                     self.current_sector = self.enter_sector(self.quadrant_x, self.quadrant_y)
+                    self.energy -= 100
+                    EXPLOSION_CHANNEL.play(WARP_SOUND)
             elif dy == 1:  # Moving down
                 if self.quadrant_y < QUADRANT_SIZE - 1:
                     self.quadrant_y += 1
                     self.grid_y = 0
                     self.current_sector = self.enter_sector(self.quadrant_x, self.quadrant_y)
+                    self.energy -= 100
+                    EXPLOSION_CHANNEL.play(WARP_SOUND)
             elif dy == -1:  # Moving up
                 if self.quadrant_y > 0:
                     self.quadrant_y -= 1
                     self.grid_y = GRID_SIZE - 1
                     self.current_sector = self.enter_sector(self.quadrant_x, self.quadrant_y)
+                    self.energy -= 100
+                    EXPLOSION_CHANNEL.play(WARP_SOUND)
             
             self.update_position()
 
@@ -234,6 +449,52 @@ class Player(pygame.sprite.Sprite):
 
 #### end player class
 
+class Phasor_blast(pygame.sprite.Sprite):
+    def __init__(self, origin_x, origin_y, enemy_x, enemy_y):
+        super().__init__()
+
+        self.origin_x = GRID_ORIGIN_X + (origin_x * SQUARE_SIZE) + SQUARE_SIZE//2
+        self.origin_y = GRID_ORIGIN_Y + (origin_y * SQUARE_SIZE) + SQUARE_SIZE//2
+        self.enemy_x =  GRID_ORIGIN_X + (enemy_x * SQUARE_SIZE) + SQUARE_SIZE//2
+        self.enemy_y =  GRID_ORIGIN_Y + (enemy_y * SQUARE_SIZE) + SQUARE_SIZE//2
+        self.timer = 400  # Duration in milliseconds
+        self.start_time = pygame.time.get_ticks()  # Get the current time when the blast is created
+
+    def update(self):
+        ...
+        """Update the phasor blast's state."""
+        current_time = pygame.time.get_ticks()
+        if current_time - self.start_time > self.timer:
+            self.kill()  # Remove the sprite after 1 second
+
+    def draw(self, screen):
+        """Draw the phasor blast."""
+        pygame.draw.line(SCREEN,WHITE,(self.origin_x, self.origin_y),(self.enemy_x, self.enemy_y), 2)
+
+
+class Explosion(pygame.sprite.Sprite):
+    def __init__(self, position, max_size=SQUARE_SIZE, start_size=SQUARE_SIZE//4, growth_rate=2):
+        super().__init__()
+        self.position = position  # Center of the explosion
+        self.growth_rate = growth_rate
+        self.max_size = max_size
+        self.current_size = start_size
+        self.color = WHITE
+
+    def update(self):
+        # Expand the explosion
+        self.current_size += self.growth_rate
+        self.color = random.choice([WHITE, RED, ORANGE, YELLOW])
+        if self.current_size > self.max_size:
+            self.kill()  # Remove the sprite once it reaches the max size
+
+    def draw(self, screen):
+        # Draw the explosion as a growing circle
+        pygame.draw.circle(screen,self.color, self.position, self.current_size // 2)
+
+
+
+
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, grid_x, grid_y):
         super().__init__()
@@ -245,18 +506,38 @@ class Enemy(pygame.sprite.Sprite):
         self.image = self.orig_image
 
         self.rect = self.image.get_rect()
-        self.last_move_direction = "up"
+        self.last_move_direction = random.choice(["up", "down", "left", "right"])
         self.update_position()
+
+        self.name = "Avenger"
 
         self.torpedo_qty = 10
         self.energy = 1000 
-        self.shields = 0
+        self.shields = random.randint(40, 60)
+        self.hull = random.randint(150, 250)
 
     def update_position(self):
         """Update the player's rect position based on the grid coordinates."""
         player_draw_x = GRID_ORIGIN_X + (self.grid_x * SQUARE_SIZE)
         player_draw_y = GRID_ORIGIN_Y + (self.grid_y * SQUARE_SIZE)
         self.rect.topleft = (player_draw_x, player_draw_y)
+
+        if self.last_move_direction == "left":
+            self.image = pygame.transform.rotate(self.orig_image, 90)
+
+        elif self.last_move_direction == "right":
+            self.image = pygame.transform.rotate(self.orig_image, -90)
+
+        elif self.last_move_direction == "up":
+            self.image = self.orig_image
+
+        elif self.last_move_direction == "down":
+            self.image = pygame.transform.flip(self.orig_image, False, True)
+
+
+
+    def die(self):
+        self.kill()
 
 
 class Sector:
@@ -271,6 +552,8 @@ class Sector:
         self.last_star_count = 0
         self.last_base_count = 0
         self.last_enemy_count = 0
+
+
 
     def generate(self, player_x, player_y):
         """Generate stars and possibly a base for the sector."""
@@ -334,7 +617,7 @@ class Sector:
     def is_enemy_at(self, x, y):
         for enemy in self.enemies:
             if enemy.grid_x == x and enemy.grid_y == y:
-                return True
+                return enemy
         return False
 
 
@@ -348,22 +631,29 @@ def draw_sector_map(player):
     # Draw the grid background
     SCREEN.blit(GRID_BACKGROUND, (GRID_ORIGIN_X, GRID_ORIGIN_Y))
 
-
+    # condition_set_to = "GREEN"
     # Draw grid lines
     for row in range(GRID_SIZE):
         for col in range(GRID_SIZE):
             this_square_x = GRID_ORIGIN_X + (col * SQUARE_SIZE)
             this_square_y = GRID_ORIGIN_Y + (row * SQUARE_SIZE)
             rect = pygame.Rect(this_square_x, this_square_y, SQUARE_SIZE, SQUARE_SIZE)
-            pygame.draw.rect(SCREEN, DARK_GREEN, rect, 1)
+            # pygame.draw.rect(SCREEN, DARK_GREEN, rect, 1)
 
-            
+            if player.current_sector.count_enemies() >= 1:
+                player.condition = "RED"
+
+            else:
+                ...
+                # player.condition = "GREEN"
 
             
             if player.current_sector.is_star_at(col, row): # Check if there is a star in this square
                 # Draw a star in this square (could be a small circle or image)
                 pygame.draw.circle(SCREEN, YELLOW, rect.center, 20)  # Yellow star
                 pygame.draw.rect(SCREEN, YELLOW, rect, 1)  # yellow grid line
+
+
 
             elif player.current_sector.is_base_at(col, row):
 
@@ -376,30 +666,71 @@ def draw_sector_map(player):
 
                 # Blit the image, applying the offsets
                 SCREEN.blit(BASE_IMAGE, (base_screen_x + offset_x, base_screen_y + offset_y))
-
                 pygame.draw.rect(SCREEN, BLUE, rect, 1)  # Blue grid line
 
+                # Calculate distance
+                distance = abs(math.sqrt((player.grid_x - col) ** 2 + (player.grid_y- row) ** 2))
+                # print(distance)
+                
+                if (distance <=1):
+                    if player.current_sector.count_enemies() <= 0:
+                        player.condition = "BLUE"
+                        player.update_position()
+                    else:
+                        player.condition = "RED"
+                else:
+                    player.condition = "GREEN"
+
+
+
+
             elif player.current_sector.is_enemy_at(col, row):
+                this_enemy = player.current_sector.is_enemy_at(col, row)
                 enemy_screen_x = GRID_ORIGIN_X + (col * SQUARE_SIZE)
                 enemy_screen_y = GRID_ORIGIN_Y + (row * SQUARE_SIZE)
                 offset_x = (SQUARE_SIZE - ENEMY_SHIP.get_width()) // 2
                 offset_y = (SQUARE_SIZE - ENEMY_SHIP.get_height()) // 2
-                SCREEN.blit(ENEMY_SHIP, (enemy_screen_x + offset_x, enemy_screen_y + offset_y))
+
+                SCREEN.blit(this_enemy.image, (enemy_screen_x + offset_x, enemy_screen_y + offset_y))
+
+                if this_enemy.shields >=1 :
+                    # Calculate the center of the square for the circle
+                    center_x = enemy_screen_x + SQUARE_SIZE // 2
+                    center_y = enemy_screen_y + SQUARE_SIZE // 2
+                    radius = SQUARE_SIZE // 2  # Radius is half the square size
+
+                    # Draw a blue circle around the enemy
+                    pygame.draw.circle(SCREEN, BLUE, (center_x, center_y), radius, 2)  # 2 is the thickness of the circle's border
+
                 pygame.draw.rect(SCREEN, RED, rect, 1)  # RED grid line
-
-
-            elif col == player.grid_x and row == player.grid_y:
-                pygame.draw.rect(SCREEN, GREEN, rect,1)  # Highlight in Green (or another color)
-                
 
             else:
                 pygame.draw.rect(SCREEN, DARK_GREEN, rect, 1)  # Regular grid line
+
+
+            if col == player.grid_x and row == player.grid_y:
+                if player.condition == "BLUE":
+                    pygame.draw.rect(SCREEN, BLUE, rect,1)  # Highlight in Green (or another color)
+                else:
+                    pygame.draw.rect(SCREEN, GREEN, rect,1)  # Highlight in Green (or another color)
+                
+
+            else:
+                ...
+
+                # pygame.draw.rect(SCREEN, DARK_GREEN, rect, 1)  # Regular grid line
 
             # # Draw grid number for each square (optional)
             # number_text = FONT24.render("000", True, GREEN)
             # number_rect = number_text.get_rect(center=(this_square_x + SQUARE_SIZE // 2, this_square_y + SQUARE_SIZE // 2))
             # SCREEN.blit(number_text, number_rect)
 
+            if player.condition == "RED":
+                pygame.draw.rect(SCREEN, RED, (GRID_ORIGIN_X-1, GRID_ORIGIN_Y-1, GRID_SIZE * SQUARE_SIZE + 2 , GRID_SIZE * SQUARE_SIZE + 2), 2)  # RED grid line
+            elif player.condition == "BLUE":
+                pygame.draw.rect(SCREEN, BLUE, (GRID_ORIGIN_X-1, GRID_ORIGIN_Y-1, GRID_SIZE * SQUARE_SIZE + 2, GRID_SIZE * SQUARE_SIZE + 2), 2)  # BLUE grid line
+            elif player.condition == "GREEN":
+                pygame.draw.rect(SCREEN, GREEN, (GRID_ORIGIN_X-1, GRID_ORIGIN_Y-1, GRID_SIZE * SQUARE_SIZE + 2, GRID_SIZE * SQUARE_SIZE + 2), 2)  # GREEN grid line
 
             # Draw column headers (centered above the grid)
             if row == 0:  # Only draw column headers on the first row
@@ -419,6 +750,8 @@ def draw_sector_map(player):
 
     # Draw the player
     SCREEN.blit(player.image, player.rect)
+
+
 
 # draw the right side screen reports
 def draw_reports(player):
@@ -466,7 +799,13 @@ def draw_report_line(title, value, y_pos):
     SCREEN.blit(title_surface, title_rect)
 
     # Render and draw the value
-    value_surface = FONT24.render(value, True, GREEN)
+    value_color = GREEN
+
+    if value == "GREEN": value_color = GREEN
+    elif value == "BLUE": value_color = BLUE
+    elif value == "RED": value_color = RED
+
+    value_surface = FONT24.render(value, True, value_color)
     value_rect = value_surface.get_rect(
         topleft=(SCREEN_WIDTH-REPORT_STATUS_MARGIN, y_pos)
     )
@@ -583,23 +922,139 @@ def is_adjacent_or_same_sector(player_sector, target_sector):
     # distance = abs(player_sector.quadrant_x - target_sector.quadrant_x) + abs(player_sector.quadrant_y - target_sector.quadrant_y)
     return distance <= 1.85
 
+def play_delayed_sound(channel, sound, delay):
+    threading.Timer(delay, lambda: channel.play(sound)).start()
+
+def prompt_phaser_power(screen):
+    """Display a prompt for the player to enter phaser power."""
+    input_text = ""
+    prompt_active = True
+
+    while prompt_active:
+        screen.fill(BLACK, (0, SCREEN_HEIGHT - 100, 300, 100))  # Bottom-left corner
+        prompt_surface = FONT24.render("Enter Phaser Power (0-2000):", True, WHITE)
+        screen.blit(prompt_surface, (10, SCREEN_HEIGHT - 80))
+
+        input_surface = FONT24.render(input_text, True, WHITE)
+        screen.blit(input_surface, (10 + prompt_surface.get_width() + 10 , SCREEN_HEIGHT - 80))
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:  # Confirm input
+                    if input_text.isdigit():
+                        power = int(input_text)
+                        if 0 <= power <= 2000:
+                            return power
+                        else:
+                            input_text = ""  # Reset on invalid input
+                    else:
+                        input_text = ""  # Reset on invalid input
+                elif event.key == pygame.K_BACKSPACE:  # Remove last character
+                    input_text = input_text[:-1]
+                else:  # Add new character
+                    if len(input_text) < 4 and event.unicode.isdigit():  # Limit input length
+                        input_text += event.unicode
+
+def prompt_warp_factor(screen):
+    """Display a prompt for the player to enter warp factor."""
+    input_text = ""
+    prompt_active = True
+
+    while prompt_active:
+        screen.fill(BLACK, (0, SCREEN_HEIGHT - 100, 300, 100))  # Bottom-left corner
+        prompt_surface = FONT24.render("Enter Warp Factor (0-8):", True, WHITE)
+        screen.blit(prompt_surface, (10, SCREEN_HEIGHT - 80))
+
+        input_surface = FONT24.render(input_text, True, WHITE)
+        screen.blit(input_surface, (10 + prompt_surface.get_width() + 10 , SCREEN_HEIGHT - 80))
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:  # Confirm input
+                    if input_text.isdigit():
+                        factor = int(input_text)
+                        if 0 <= factor <= 8:
+                            return factor
+                        else:
+                            input_text = ""  # Reset on invalid input
+                    else:
+                        input_text = ""  # Reset on invalid input
+                elif event.key == pygame.K_BACKSPACE:  # Remove last character
+                    input_text = input_text[:-1]
+                else:  # Add new character
+                    if len(input_text) < 1 and event.unicode.isdigit():  # Limit input length
+                        input_text += event.unicode
+
+def prompt_direction(screen):
+    """Prompt the player to select a direction for warp using arrow keys."""
+    directions = {"N": "North", "S": "South", "E": "East", "W": "West"}
+    direction = None
+
+    while direction not in directions:
+        # Clear the prompt area
+        SCREEN.fill(BLACK, (0, SCREEN_HEIGHT - 100, 400, 100))  # Clear specific area for prompt
+
+        # Display the prompt
+        prompt_surface = FONT24.render("Use Arrow Keys to Select Direction:", True, WHITE)
+        SCREEN.blit(prompt_surface, (10, SCREEN_HEIGHT - 80))
+
+        pygame.display.flip()
+
+        # Handle events
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    direction = "N"
+                elif event.key == pygame.K_DOWN:
+                    direction = "S"
+                elif event.key == pygame.K_RIGHT:
+                    direction = "E"
+                elif event.key == pygame.K_LEFT:
+                    direction = "W"
+
+                if direction in directions:
+                    print(f"Direction selected: {directions[direction]}")
+                    return direction
+
+
+
+
+
+
+
 ### END FUNCTIONS ###########################################################################################################
 
 def main():
     running = True
     player = Player()
 
-    
+    phasor_group = pygame.sprite.Group() 
 
     while running:
 
         ### UPDATE EVERYTHING ###############################################################################################
 
 
-        enemy_count_ttl = 0
-        for sector in player.all_sectors:
-            enemy_count_ttl += sector.count_enemies()
-        player.num_enemies = enemy_count_ttl 
+        # enemy_count_ttl = 0
+        # for sector in player.all_sectors:
+        #     enemy_count_ttl += sector.count_enemies()
+        # player.num_enemies = enemy_count_ttl
+
+        
+
 
         # Handle events
         for event in pygame.event.get():
@@ -616,6 +1071,14 @@ def main():
                     player.move(0, -1)
                 elif event.key == pygame.K_DOWN:
                     player.move(0, 1)
+                elif event.key == pygame.K_SPACE:
+                    player.move(0, 0)
+
+                elif event.key == pygame.K_p:
+                    player.fire_phasers(phasor_group)
+
+                elif event.key == pygame.K_w:
+                    player.activate_warp()
 
 
 
@@ -627,6 +1090,10 @@ def main():
         SCREEN.fill(BLACK)
 
         draw_sector_map(player)
+
+        phasor_group.update() 
+        for phasor in phasor_group:
+            phasor.draw(SCREEN)
 
         draw_reports(player)
 
