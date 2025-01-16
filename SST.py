@@ -37,12 +37,23 @@ QUADRANT_ORIGIN_X = SCREEN_WIDTH - QUADRANT_SIZE * QUADRANT_SQUARE_SIZE - QUADRA
 QUADRANT_ORIGIN_Y = SCREEN_HEIGHT - QUADRANT_SIZE * QUADRANT_SQUARE_SIZE - QUADRANT_MARGIN
 
 
-SCAN_ORIGIN_X = GRID_ORIGIN_X + (QUADRANT_SIZE * SQUARE_SIZE) + SQUARE_SIZE
+SCAN_ORIGIN_X = GRID_ORIGIN_X + (QUADRANT_SIZE * SQUARE_SIZE) + 50
 SCAN_ORIGIN_Y = GRID_ORIGIN_Y
 
+SCAN_NAME_X = 0
+SCAN_DIRECTION_X = 85
+SCAN_DISTANCE_X = 185
+SCAN_SHIELD_X = 260
+SCAN_HULL_X = 310
+
+PROMPT_ORIGIN_X = 80 
+PROMPT_ORIGIN_Y = SCREEN_HEIGHT - 80
+PROMPT_AREA = (PROMPT_ORIGIN_X, SCREEN_HEIGHT - 90, 300, 200)  # Bottom-left corner
+COMPASS_ORIGIN_X = SCAN_ORIGIN_X
 # Colors (RGB values)
 WHITE = (255, 255, 255)
 DARK_GREY = (50, 50, 50)
+GREY = (128, 128, 128)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 DARK_RED = (50, 0, 0)
@@ -51,7 +62,7 @@ YELLOW = (255, 255, 0)
 GREEN = (0, 255, 0)
 DARK_GREEN =(0,50,0)
 BLUE = (0, 0, 255)
-DARK_BLUE = (0, 0, 50)
+DARK_BLUE = (0, 0, 128)
 
 # Fonts
 FONT24 = pygame.font.Font(None, 24)
@@ -97,6 +108,8 @@ pygame.mixer.set_num_channels(16)
 
 ALARM_CHANNEL = pygame.mixer.Channel(1)
 RED_ALERT = pygame.mixer.Sound("alarm01.mp3")
+POWER_UP = pygame.mixer.Sound("power_up2_clean.mp3")
+
 
 WEAPON_CHANNEL = pygame.mixer.Channel(2)
 WEAPON_CHANNEL.set_volume(0.25)
@@ -140,8 +153,8 @@ class Player(pygame.sprite.Sprite):
         self.orig_image = pygame.transform.scale(EARTHING_SHIP, (SQUARE_SIZE, SQUARE_SIZE))
         self.image = self.orig_image
         self.rect = self.image.get_rect()
-        self.grid_x = 4  # Starting grid position (column)
-        self.grid_y = 3  # Starting grid position (row)
+        self.grid_x = random.randint(0,7)  # Starting grid position (column)
+        self.grid_y = random.randint(0,7) # Starting grid position (row)
         self.last_move_direction = "up"
         
         self.stardate = 3801
@@ -150,8 +163,8 @@ class Player(pygame.sprite.Sprite):
         self.condition = "GREEN"
         self.condition_color = GREEN
 
-        self.quadrant_x = 0
-        self.quadrant_y = 0
+        self.quadrant_x = random.randint(0,7)
+        self.quadrant_y = random.randint(0,7)
 
         self.torpedo_qty = 10
         self.energy = BASE_RELOAD_ENERGY
@@ -177,8 +190,8 @@ class Player(pygame.sprite.Sprite):
 
         self.all_sectors = []  # Dictionary to store Sector objects for each (quadrant_x, quadrant_y)
         self.generate_all_sectors()  # Generate all sectors when the game starts
-        self.current_sector = None
-        self.current_sector = self.enter_sector(self.quadrant_x, self.quadrant_y)  # Ensure player starts on an empty square
+        self.current_quadrant = None
+        self.current_quadrant = self.enter_sector(self.quadrant_x, self.quadrant_y)  # Ensure player starts on an empty square
 
         self.turn = 0
 
@@ -218,10 +231,15 @@ class Player(pygame.sprite.Sprite):
             if (self.quadrant_x == sector.quadrant_x) and (self.quadrant_y == sector.quadrant_y):
 
                 # Ensure player's starting position isn't on a star or base
-                while sector.is_star_at(self.grid_x, self.grid_y) or sector.is_base_at(self.grid_x, self.grid_y) or sector.is_enemy_at(self.grid_x, self.grid_y):
+                while (sector.is_star_at(self.grid_x, self.grid_y)) or (sector.is_base_at(self.grid_x, self.grid_y)) or (sector.is_enemy_at(self.grid_x, self.grid_y)):
                     self.move_away_from_star_or_base(sector)
 
-                if sector != self.current_sector:
+                if sector != self.current_quadrant: #ENTERING A NEW SECTOR
+
+                    if self.current_quadrant != None:
+                        for enemy in self.current_quadrant.enemies: # RESET ENEMY ENERGY IF PLAYER LEAVES
+                            enemy.energy = random.randint(800 , 1200)
+
 
 
                     if sector.count_enemies() >=1 :
@@ -249,9 +267,13 @@ class Player(pygame.sprite.Sprite):
         ]
         
         for nx, ny in valid_neighbors:
-            if not sector.is_star_at(nx, ny) and not sector.is_base_at(nx, ny) and not sector.is_enemy_at(nx, ny):
-                self.grid_x, self.grid_y = nx, ny
-                return
+            if not sector.is_star_at(nx, ny):
+                if not sector.is_base_at(nx, ny):
+                    if not sector.is_enemy_at(nx, ny):
+                        self.grid_x, self.grid_y = nx, ny
+                        self.update_position()
+                        print("Evasive!")
+                        return
         
         print(f"Warning: No valid adjacent square found for the player. Staying at ({self.grid_x}, {self.grid_y}).")
 
@@ -259,8 +281,8 @@ class Player(pygame.sprite.Sprite):
 
     def update_position(self):
         """Update the player's rect position based on the grid coordinates."""
-        player_draw_x = GRID_ORIGIN_X + (self.grid_x * SQUARE_SIZE) + self.offset_x
-        player_draw_y = GRID_ORIGIN_Y + (self.grid_y * SQUARE_SIZE) + self.offset_y
+        player_draw_x = GRID_ORIGIN_X + (round(self.grid_x) * SQUARE_SIZE) + self.offset_x
+        player_draw_y = GRID_ORIGIN_Y + (round(self.grid_y) * SQUARE_SIZE) + self.offset_y
         self.rect.topleft = (player_draw_x, player_draw_y)
 
         # if self.condition == "BLUE": 
@@ -280,6 +302,10 @@ class Player(pygame.sprite.Sprite):
 
         if self.energy >= MAX_ENERGY:
             self.energy = MAX_ENERGY
+
+        if self.hull >= MAX_HULL:
+            self.hull = MAX_HULL
+
         if self.torpedo_qty >= MAX_TORPEDO_QTY:
             self.torpedo_qty = MAX_TORPEDO_QTY
 
@@ -294,6 +320,8 @@ class Player(pygame.sprite.Sprite):
         if self.docked == False:
             if self.inDockingRange is not None:
                 self.docked = True
+
+                ALARM_CHANNEL.play(POWER_UP)
 
                 # Calculate the offset
                 self.offset_x = (starbase[0] - self.grid_x) * (SQUARE_SIZE // 2)
@@ -350,7 +378,7 @@ class Player(pygame.sprite.Sprite):
         
     def fire_phasers(self,):
         """Fire phasers and damage enemies in the current sector."""
-        num_enemy = self.current_sector.count_enemies()
+        num_enemy = self.current_quadrant.count_enemies()
         
         if num_enemy >= 1:
 
@@ -366,7 +394,7 @@ class Player(pygame.sprite.Sprite):
                     WEAPON_CHANNEL.play(PHASER_SOUND)
 
                     # Apply damage to each enemy
-                    for enemy in self.current_sector.enemies:
+                    for enemy in self.current_quadrant.enemies:
                         # Create and add a phasor blast
                         phasor_blast = Phasor_blast(self.grid_x, self.grid_y, enemy.grid_x, enemy.grid_y, WHITE)
                         projectile_group.add(phasor_blast)
@@ -407,7 +435,7 @@ class Player(pygame.sprite.Sprite):
 
                         # Remove destroyed enemies
                         remaining_enemies = []
-                        for enemy in self.current_sector.enemies:
+                        for enemy in self.current_quadrant.enemies:
                             if enemy.hull <= 0:
 
                                 print(f"{enemy.name} destroyed!")
@@ -428,11 +456,11 @@ class Player(pygame.sprite.Sprite):
                                 projectile_group.add(explosion)
 
                         # Update the sector's enemies list
-                        self.current_sector.enemies = remaining_enemies
+                        self.current_quadrant.enemies = remaining_enemies
 
 
                     # Check if all enemies are destroyed, and play victory sound
-                    if len(self.current_sector.enemies) == 0:
+                    if len(self.current_quadrant.enemies) == 0:
                         play_delayed_sound(MUSIC_CHANNEL, random.choice(VICTORY_DITTIES), 1)
                     
 
@@ -483,41 +511,73 @@ class Player(pygame.sprite.Sprite):
                 print("Torpedo Stock Depleted")
 
 
-
-
-
     def activate_warp(self):
         """Prompt the player to select a warp factor and move the player."""
         warp_factor = prompt_warp_factor(SCREEN)
 
         if warp_factor > 0:
-
             self.stardate += (1 * warp_factor)
 
-            # Ask for the direction (e.g., N, S, E, W)
-            direction = prompt_direction(SCREEN,"Use Arrow Keys to Select Warp Direction:")
+
+            """Display a compass guide showing the warp direction numbers."""
+            draw_compass()
+
+            # Prompt the player to enter a direction (1-8)
+            direction = prompt_numeric_input("Enter Warp Direction (1-9):", 1, 9, compass=True)
 
             # Calculate the new sector based on the warp factor and direction
             new_x, new_y = self.quadrant_x, self.quadrant_y
-            if direction == "N":
+
+            if direction == 8:  # North
                 new_y -= warp_factor
                 self.last_move_direction = "up"
                 self.image = self.orig_image
 
-            elif direction == "S":
+            elif direction == 9:  # Northeast
+                new_x += warp_factor
+                new_y -= warp_factor
+                self.last_move_direction = "up"
+                self.image = self.orig_image
+
+
+            elif direction == 6:  # East
+                new_x += warp_factor
+                self.last_move_direction = "right"
+                self.image = pygame.transform.rotate(self.orig_image, -90)
+
+            elif direction == 3:  # Southeast
+                new_x += warp_factor
                 new_y += warp_factor
                 self.last_move_direction = "down"
                 self.image = pygame.transform.flip(self.orig_image, False, True)
 
-            elif direction == "E":
-                self.last_move_direction = "right"
-                new_x += warp_factor
-                self.image = pygame.transform.rotate(self.orig_image, -90)
 
-            elif direction == "W":
-                self.last_move_direction = "left"
+            elif direction == 2:  # South
+                new_y += warp_factor
+                self.last_move_direction = "down"
+                self.image = pygame.transform.flip(self.orig_image, False, True)
+
+            elif direction == 1:  # Southwest
                 new_x -= warp_factor
+                new_y += warp_factor
+                self.last_move_direction = "down"
+                self.image = pygame.transform.flip(self.orig_image, False, True)
+
+
+            elif direction == 4:  # West
+                new_x -= warp_factor
+                self.last_move_direction = "left"
                 self.image = pygame.transform.rotate(self.orig_image, 90)
+
+            elif direction == 7:  # Northwest
+                new_x -= warp_factor
+                new_y -= warp_factor
+                self.last_move_direction = "up"
+                self.image = self.orig_image
+
+            new_x = round(new_x)
+            new_y = round(new_y)
+
 
             # Clamp the new position to within the grid boundaries
             new_x = max(0, min(GRID_SIZE - 1, new_x))
@@ -525,18 +585,74 @@ class Player(pygame.sprite.Sprite):
 
             print(f"Warping to sector ({new_x}, {new_y}) at Warp {warp_factor}.")
             self.turn = 0
-            if self.shields_on:
-                self.energy -= (warp_factor * WARP_ENERGY_PER)*2
-            else:
-                self.energy -= (warp_factor * WARP_ENERGY_PER)
 
+            # Adjust energy based on warp factor and shield status
+            energy_cost = (warp_factor * WARP_ENERGY_PER)
+            if self.shields_on:
+                energy_cost *= 2
+
+            self.energy -= energy_cost
             EXPLOSION_CHANNEL.play(WARP_SOUND)
 
             # Enter the new sector
             self.quadrant_x = new_x
             self.quadrant_y = new_y
-            self.current_sector = self.enter_sector(new_x, new_y)
+            self.current_quadrant = self.enter_sector(new_x, new_y)
             self.update_position()
+
+
+
+    # def activate_warp(self):
+    #     """Prompt the player to select a warp factor and move the player."""
+    #     warp_factor = prompt_warp_factor(SCREEN)
+
+    #     if warp_factor > 0:
+
+    #         self.stardate += (1 * warp_factor)
+
+    #         # Ask for the direction (e.g., N, S, E, W)
+    #         direction = prompt_direction(SCREEN,"Use Arrow Keys to Select Warp Direction:")
+
+    #         # Calculate the new sector based on the warp factor and direction
+    #         new_x, new_y = self.quadrant_x, self.quadrant_y
+    #         if direction == "N":
+    #             new_y -= warp_factor
+    #             self.last_move_direction = "up"
+    #             self.image = self.orig_image
+
+    #         elif direction == "S":
+    #             new_y += warp_factor
+    #             self.last_move_direction = "down"
+    #             self.image = pygame.transform.flip(self.orig_image, False, True)
+
+    #         elif direction == "E":
+    #             self.last_move_direction = "right"
+    #             new_x += warp_factor
+    #             self.image = pygame.transform.rotate(self.orig_image, -90)
+
+    #         elif direction == "W":
+    #             self.last_move_direction = "left"
+    #             new_x -= warp_factor
+    #             self.image = pygame.transform.rotate(self.orig_image, 90)
+
+    #         # Clamp the new position to within the grid boundaries
+    #         new_x = max(0, min(GRID_SIZE - 1, new_x))
+    #         new_y = max(0, min(GRID_SIZE - 1, new_y))
+
+    #         print(f"Warping to sector ({new_x}, {new_y}) at Warp {warp_factor}.")
+    #         self.turn = 0
+    #         if self.shields_on:
+    #             self.energy -= (warp_factor * WARP_ENERGY_PER)*2
+    #         else:
+    #             self.energy -= (warp_factor * WARP_ENERGY_PER)
+
+    #         EXPLOSION_CHANNEL.play(WARP_SOUND)
+
+    #         # Enter the new sector
+    #         self.quadrant_x = new_x
+    #         self.quadrant_y = new_y
+    #         self.current_quadrant = self.enter_sector(new_x, new_y)
+    #         self.update_position()
 
 
 
@@ -559,20 +675,22 @@ class Player(pygame.sprite.Sprite):
         self.stardate += (1 * 0.95)
 
         if dx == 0 and dy == 0:
+            print("Resting for Repairs...")
             self.energy += 1
+            self.hull += 1
 
         # If within bounds, check if the new position is blocked by a star
         if 0 <= new_x < GRID_SIZE and 0 <= new_y < GRID_SIZE:
             # Check if the new position has a star (blocking movement)
-            if self.current_sector.is_star_at(new_x, new_y):
+            if self.current_quadrant.is_star_at(new_x, new_y):
                 print("Movement blocked by a star!")
                 return  # Don't move if there's a star in the way
 
-            if self.current_sector.is_base_at(new_x, new_y):
+            if self.current_quadrant.is_base_at(new_x, new_y):
                 print("Movement blocked by a base!")
                 return  # Don't move if there's a star in the way
 
-            if self.current_sector.is_enemy_at(new_x, new_y):
+            if self.current_quadrant.is_enemy_at(new_x, new_y):
                 print("Movement blocked by an enemy!")
                 return  # Don't move if there's a star in the way
 
@@ -587,7 +705,7 @@ class Player(pygame.sprite.Sprite):
                 if self.quadrant_x < QUADRANT_SIZE - 1:
                     self.quadrant_x += 1
                     self.grid_x = 0
-                    self.current_sector = self.enter_sector(self.quadrant_x, self.quadrant_y)
+                    self.current_quadrant = self.enter_sector(self.quadrant_x, self.quadrant_y)
                     warp_factor = 1
                     print(f"Warping to sector ({self.quadrant_x,}, {self.quadrant_y}) at Warp {warp_factor}.")
                     if self.shields_on:
@@ -602,7 +720,7 @@ class Player(pygame.sprite.Sprite):
                 if self.quadrant_x > 0:
                     self.quadrant_x -= 1
                     self.grid_x = GRID_SIZE - 1
-                    self.current_sector = self.enter_sector(self.quadrant_x, self.quadrant_y)
+                    self.current_quadrant = self.enter_sector(self.quadrant_x, self.quadrant_y)
                     warp_factor = 1
                     print(f"Warping to sector ({self.quadrant_x,}, {self.quadrant_y}) at Warp {warp_factor}.")
                     if self.shields_on:
@@ -616,7 +734,7 @@ class Player(pygame.sprite.Sprite):
                 if self.quadrant_y < QUADRANT_SIZE - 1:
                     self.quadrant_y += 1
                     self.grid_y = 0
-                    self.current_sector = self.enter_sector(self.quadrant_x, self.quadrant_y)
+                    self.current_quadrant = self.enter_sector(self.quadrant_x, self.quadrant_y)
                     warp_factor = 1
                     print(f"Warping to sector ({self.quadrant_x,}, {self.quadrant_y}) at Warp {warp_factor}.")
                     if self.shields_on:
@@ -630,7 +748,7 @@ class Player(pygame.sprite.Sprite):
                 if self.quadrant_y > 0:
                     self.quadrant_y -= 1
                     self.grid_y = GRID_SIZE - 1
-                    self.current_sector = self.enter_sector(self.quadrant_x, self.quadrant_y)
+                    self.current_quadrant = self.enter_sector(self.quadrant_x, self.quadrant_y)
                     warp_factor = 1
                     print(f"Warping to sector ({self.quadrant_x,}, {self.quadrant_y}) at Warp {warp_factor}.")
                     if self.shields_on:
@@ -746,7 +864,7 @@ class Torpedo(pygame.sprite.Sprite):
 
         print(f"{self.name} @ ({rounded_x}, {rounded_y})")
 
-        for enemy in player.current_sector.enemies:
+        for enemy in player.current_quadrant.enemies:
             if rounded_x == enemy.grid_x and rounded_y == enemy.grid_y:
                 print(f"{self.name} * Hit Enemy {enemy.name} at ({enemy.grid_x}, {enemy.grid_y})! *")
                 return enemy
@@ -773,18 +891,18 @@ class Torpedo(pygame.sprite.Sprite):
         rounded_x = round(self.grid_x)
         rounded_y = round(self.grid_y)
 
-        if player.current_sector.is_star_at(rounded_x, rounded_y):
+        if player.current_quadrant.is_star_at(rounded_x, rounded_y):
             print(f"{self.name} collided with a star @ {rounded_x}, {rounded_y}.")
             self.explode(self.grid_x, self.grid_y, max_size=SQUARE_SIZE //3 , start_size=1, growth_rate=2)
             return
 
-        if player.current_sector.is_base_at(rounded_x, rounded_y):
+        if player.current_quadrant.is_base_at(rounded_x, rounded_y):
             print(f"{self.name} collided with a base @ {rounded_x}, {rounded_y}.")
             self.explode(self.grid_x, self.grid_y, max_size=SQUARE_SIZE //3 , start_size=1, growth_rate=2)
             return
 
         # Check for collisions with enemies
-        hit_enemy = self.check_collision(player.current_sector.enemies)
+        hit_enemy = self.check_collision(player.current_quadrant.enemies)
         if hit_enemy:
             self.handle_enemy_hit(hit_enemy)
 
@@ -819,12 +937,12 @@ class Torpedo(pygame.sprite.Sprite):
         if enemy.hull <= 0:
             print(f"     {enemy.name} Destroyed!")
             enemy.die()
-            player.current_sector.enemies.remove(enemy)
+            player.current_quadrant.enemies.remove(enemy)
             self.explode(enemy.grid_x, enemy.grid_y, max_size=SQUARE_SIZE, start_size=5, growth_rate=2)
             EXPLOSION_CHANNEL.play(SHIP_DEATH_SOUND)
 
             # Check if all enemies are destroyed, and play victory sound
-            if len(player.current_sector.enemies) == 0:
+            if len(player.current_quadrant.enemies) == 0:
                 play_delayed_sound(MUSIC_CHANNEL, random.choice(VICTORY_DITTIES), 1)
 
                 # Re-enter the sector to ensure state consistency
@@ -858,6 +976,17 @@ class Explosion(pygame.sprite.Sprite):
 
 
 
+class Base(pygame.sprite.Sprite):
+    def __init__(self, grid_x, grid_y):
+        super().__init__()
+
+        self.name = "STARBASE"
+        self.grid_x = grid_x
+        self.grid_y = grid_y
+
+        self.shields = 0
+        self.hull = 0
+
 ### ENEMY CLASS ####
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, grid_x, grid_y):
@@ -873,10 +1002,10 @@ class Enemy(pygame.sprite.Sprite):
         self.last_move_direction = random.choice(["up", "down", "left", "right"])
         self.update_position()
 
-        self.name = "Avenger"
+        self.name = "AVENGER"
 
         self.torpedo_qty = 10
-        self.energy = 1000 
+        self.energy = random.randint(800 , 1200)
         self.shields = random.randint(40, 60)
         self.hull = random.randint(150, 250)
 
@@ -1002,7 +1131,7 @@ class Enemy(pygame.sprite.Sprite):
                             if self.last_move_direction:
                                 self.update_position()
 
-                    if random.random() < .50:
+                    if random.random() < .75:
                         self.enemy_fire_phaser(player)
 
 
@@ -1024,11 +1153,11 @@ class Enemy(pygame.sprite.Sprite):
         x, y = position
 
         # Ensure the position is within the sector's boundaries
-        # if not (0 <= x < player.current_sector.width and 0 <= y < player.current_sector.height):
+        # if not (0 <= x < player.current_quadrant.width and 0 <= y < player.current_quadrant.height):
         #     return False
 
         # Check if the position contains a star
-        if player.current_sector.is_star_at(x, y):
+        if player.current_quadrant.is_star_at(x, y):
             return False
 
         # Check if the position contains the player's square
@@ -1036,12 +1165,12 @@ class Enemy(pygame.sprite.Sprite):
             return False
 
         # Check if the position contains another enemy's square
-        if player.current_sector.is_enemy_at(x, y):
+        if player.current_quadrant.is_enemy_at(x, y):
             return False
 
 
         # Check if the position contains a starbase
-        if player.current_sector.is_base_at(x, y):
+        if player.current_quadrant.is_base_at(x, y):
             return False
 
         # Otherwise, the position is valid
@@ -1103,8 +1232,9 @@ class Sector:
             while placing:
                 grid_x, grid_y = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
                 base_pos = (grid_x, grid_y)
+                base = Base(grid_x, grid_y)
                 if base_pos not in self.stars and base_pos not in self.bases and base_pos != (player_x, player_y):
-                    self.bases.append(base_pos)  # Add base to the list
+                    self.bases.append(base)  # Add base to the list
                     placing = False
 
         # 10% chance of having an enemy in the sector
@@ -1136,7 +1266,10 @@ class Sector:
     
     def is_base_at(self, x, y):
         """Check if there is a base at the given coordinates."""
-        return (x, y) in self.bases
+        for base in self.bases:
+            if base.grid_x == x and base.grid_y == y:
+                return base
+        return False
 
     def is_star_at(self, x, y):
         """Check if there is a star at the given coordinates."""
@@ -1178,7 +1311,7 @@ def draw_sector_map():
             rect = pygame.Rect(this_square_x, this_square_y, SQUARE_SIZE, SQUARE_SIZE)
             # pygame.draw.rect(SCREEN, DARK_GREEN, rect, 1)
 
-            if player.current_sector.count_enemies() >= 1:
+            if player.current_quadrant.count_enemies() >= 1:
                 player.condition = "RED"
 
             else:
@@ -1186,14 +1319,14 @@ def draw_sector_map():
                 # player.condition = "GREEN"
 
             
-            if player.current_sector.is_star_at(col, row): # Check if there is a star in this square
+            if player.current_quadrant.is_star_at(col, row): # Check if there is a star in this square
                 # Draw a star in this square (could be a small circle or image)
                 pygame.draw.circle(SCREEN, YELLOW, rect.center, 20)  # Yellow star
                 pygame.draw.rect(SCREEN, YELLOW, rect, 1)  # yellow grid line
 
 
 
-            elif player.current_sector.is_base_at(col, row):
+            elif player.current_quadrant.is_base_at(col, row):
 
                 
                 base_screen_x = GRID_ORIGIN_X + (col * SQUARE_SIZE)
@@ -1211,7 +1344,7 @@ def draw_sector_map():
                 # print(distance)
                 
                 if (distance <=1):
-                    if player.current_sector.count_enemies() <= 0:
+                    if player.current_quadrant.count_enemies() <= 0:
                         player.condition = "GREEN"
                         player.update_position()
 
@@ -1228,8 +1361,8 @@ def draw_sector_map():
 
 
 
-            elif player.current_sector.is_enemy_at(col, row):
-                this_enemy = player.current_sector.is_enemy_at(col, row)
+            elif player.current_quadrant.is_enemy_at(col, row):
+                this_enemy = player.current_quadrant.is_enemy_at(col, row)
                 enemy_screen_x = GRID_ORIGIN_X + (col * SQUARE_SIZE)
                 enemy_screen_y = GRID_ORIGIN_Y + (row * SQUARE_SIZE)
                 offset_x = (SQUARE_SIZE - ENEMY_SHIP.get_width()) // 2
@@ -1378,6 +1511,8 @@ def draw_reports():
 
 # Draw each report line
 def draw_report_line(title, value, y_pos):
+    current_time = pygame.time.get_ticks()  # Get the current time in milliseconds
+    flash_on = (current_time // 500) % 2 == 0  # Flash on/off every 500 milliseconds
     
 
     # Render and draw the value
@@ -1397,11 +1532,19 @@ def draw_report_line(title, value, y_pos):
             value_color = GREEN 
             title = "SHIELDS DOWN:"
 
-        if player.current_sector.enemies:
-            if (player.shield_level <= 25) or (not player.shields_on) or (player.shields < 250):
+        if player.current_quadrant.enemies:
+            if (not player.shields_on) or (player.shields < 250): #(player.shield_level <= 25)
                value_color = YELLOW 
                title_color = YELLOW
+               if not flash_on: value_color = BLACK
 
+            if player.shields < 50:
+                value_color = RED 
+                title_color = RED
+                if not flash_on: value_color = BLACK
+
+            if player.shields <= 0:
+                title = "SHIELDS DOWN:"
 
     elif  title == "SHIELD LEVEL:":
         if player.shields_on:
@@ -1409,6 +1552,20 @@ def draw_report_line(title, value, y_pos):
             title_color = WHITE
         else:
             value_color = GREEN 
+
+    elif title == "CONDITION:":
+        if player.condition == "RED":
+            if not flash_on: value_color = BLACK
+
+    elif title == "HULL STRENGTH:":
+        if player.hull < (MAX_HULL * .80):
+            value_color = YELLOW
+            if not flash_on: value_color = BLACK
+
+        if player.hull <= (MAX_HULL * 0.5):
+            value_color = RED
+            if not flash_on: value_color = BLACK
+
 
     # Render and draw the title
     title_surface = FONT24.render(title, True, title_color)
@@ -1437,6 +1594,11 @@ def draw_report_line(title, value, y_pos):
 #         return len(player.visited_sectors.get(sector_key, {'stars': []})['stars'])
 
 def draw_alert_info(screen):
+
+    current_time = pygame.time.get_ticks()  # Get the current time in milliseconds
+    flash_on = (current_time // 500) % 2 == 0  # Flash on/off every 500 milliseconds
+
+
     """Draw information about the sector and player's condition above the sector map."""
     # Define text positions and spacing
     padding = 10
@@ -1453,10 +1615,10 @@ def draw_alert_info(screen):
 
     
 
-    if player.current_sector.enemies:
+    if player.current_quadrant.enemies:
 
         # Display sector information
-        sector_title = FONT24.render(f"QUADRANT : {player.quadrant_x+1} , {player.quadrant_y+1}   ({get_quadrant_name(player.quadrant_x,player.quadrant_y)})", True, RED)
+        sector_title = FONT24.render(f"QUADRANT : {player.quadrant_x+1} , {player.quadrant_y+1}   ( {get_quadrant_name(player.quadrant_x,player.quadrant_y)} )", True, RED)
         screen.blit(sector_title, (sector_info_x, sector_info_y-FONT24.get_height()))
 
         # Display sector information
@@ -1470,13 +1632,13 @@ def draw_alert_info(screen):
     elif player.inDockingRange is not None:
 
         if player.docked:
-            sector_title = FONT24.render(f"QUADRANT : {player.quadrant_x+1} , {player.quadrant_y+1}   ({get_quadrant_name(player.quadrant_x,player.quadrant_y)})", True, BLUE)
+            sector_title = FONT24.render(f"QUADRANT : {player.quadrant_x+1} , {player.quadrant_y+1}   ( {get_quadrant_name(player.quadrant_x,player.quadrant_y)} )", True, BLUE)
             screen.blit(sector_title, (sector_info_x, sector_info_y-FONT24.get_height()))
             # Display sector information
             sector_title = FONT24.render(f"DOCKED WITH STARBASE", True, BLUE)
             screen.blit(sector_title, (sector_info_x, sector_info_y))
         else:
-            sector_title = FONT24.render(f"QUADRANT : {player.quadrant_x+1} , {player.quadrant_y+1}   ({get_quadrant_name(player.quadrant_x,player.quadrant_y)})", True, GREEN)
+            sector_title = FONT24.render(f"QUADRANT : {player.quadrant_x+1} , {player.quadrant_y+1}   ( {get_quadrant_name(player.quadrant_x,player.quadrant_y)} )", True, GREEN)
             screen.blit(sector_title, (sector_info_x, sector_info_y-FONT24.get_height()))
             # Display sector information
             sector_title = FONT24.render(f"IN DOCKING RANGE WITH STARBASE", True, BLUE)
@@ -1485,15 +1647,15 @@ def draw_alert_info(screen):
         
     else:
         ...
-        sector_title = FONT24.render(f"QUADRANT : {player.quadrant_x+1} , {player.quadrant_y+1}   ({get_quadrant_name(player.quadrant_x,player.quadrant_y)})", True, GREEN)
+        sector_title = FONT24.render(f"QUADRANT : {player.quadrant_x+1} , {player.quadrant_y+1}   ( {get_quadrant_name(player.quadrant_x,player.quadrant_y)} )", True, GREEN)
         screen.blit(sector_title, (sector_info_x, sector_info_y-FONT24.get_height()))
 
     # Display player condition aligned to the right edge of the sector map
 
     color = GREEN
 
-    if player.condition == "RED":
-        color = RED
+    
+        
 
     if player.condition == "GREEN":
         color = GREEN
@@ -1501,16 +1663,27 @@ def draw_alert_info(screen):
     if player.condition == "BLUE":
         color = BLUE
 
-    player_condition = FONT24.render(
-        f"CONDITION: {player.condition}",True,color)
-    screen.blit(player_condition, (player_info_x - player_condition.get_width(), player_info_y-FONT24.get_height()))
-
+    if player.condition =="RED":
+        color = RED
+        if flash_on:
+            player_condition = FONT24.render(
+                f" ** CONDITION: {player.condition} **",True,color)
+            screen.blit(player_condition, (player_info_x - player_condition.get_width(), player_info_y-FONT24.get_height()))
+    else:
+        player_condition = FONT24.render(
+            f"CONDITION: {player.condition}",True,color)
+        screen.blit(player_condition, (player_info_x - player_condition.get_width(), player_info_y-FONT24.get_height()))
 
 
 
 
 
 def draw_quadrant_map(player):
+
+    current_time = pygame.time.get_ticks()  # Get the current time in milliseconds
+    flash_on = (current_time // 500) % 2 == 0  # Flash on/off every 500 milliseconds
+
+
     for row in range(QUADRANT_SIZE):
         for col in range(QUADRANT_SIZE):
             # Calculate the position of each square
@@ -1526,11 +1699,7 @@ def draw_quadrant_map(player):
                 if (col == sector.quadrant_x) and (row == sector.quadrant_y):
                     this_sector = sector
 
-            grid_color = DARK_GREEN
-
-            if col == player.quadrant_x and row == player.quadrant_y:
-                grid_color = GREEN
-                colorC = GREEN
+            
 
 
 
@@ -1540,7 +1709,7 @@ def draw_quadrant_map(player):
             num_bases = this_sector.count_bases()
             num_stars = this_sector.count_stars()
 
-            if is_adjacent_or_same_sector(player.current_sector, this_sector):
+            if is_adjacent_or_same_sector(player.current_quadrant, this_sector):
 
                 this_sector.last_star_count = num_enemy
                 this_sector.last_base_count = num_bases
@@ -1573,6 +1742,23 @@ def draw_quadrant_map(player):
                 colorB = DARK_GREY
                 colorC = DARK_GREY
 
+            grid_color = DARK_GREEN
+
+            if col == player.quadrant_x and row == player.quadrant_y:
+                if flash_on: 
+                    grid_color = GREEN
+                    colorA = RED if num_enemy > 0 else GREEN
+                    colorB = BLUE if num_bases > 0 else GREEN
+                    colorC = GREEN if num_stars > 0 else GREEN
+                else:
+                    grid_color = DARK_GREEN
+                    colorA = DARK_RED if num_enemy > 0 else DARK_GREEN
+                    colorB = DARK_BLUE if num_bases > 0 else DARK_GREEN
+                    colorC = DARK_GREEN if num_stars > 0 else DARK_GREEN
+
+
+                # colorC = GREEN
+
             textA_surface = FONT24.render(textA, True, colorA)
             textB_surface = FONT24.render(textB, True, colorB)
             textC_surface = FONT24.render(textC, True, colorC)
@@ -1590,6 +1776,21 @@ def draw_quadrant_map(player):
            
             pygame.draw.rect(SCREEN, grid_color, rect,1)  # Highlight in red (or another color)
             
+            # Draw column headers (centered above the grid)
+            if row == 0:  # Only draw column headers on the first row
+                column_text = FONT24.render(str(col + 1), True, GREEN)
+                column_text_rect = column_text.get_rect(
+                    center=(this_square_x + QUADRANT_SQUARE_SIZE // 2, QUADRANT_ORIGIN_Y - QUADRANT_SQUARE_SIZE // 2)
+                )
+                SCREEN.blit(column_text, column_text_rect) 
+
+        # Draw row headers (centered to the left of the grid)
+        row_text = FONT24.render(str(row + 1), True, GREEN)
+        row_text_rect = row_text.get_rect(
+            center=(QUADRANT_ORIGIN_X - QUADRANT_SQUARE_SIZE // 2, this_square_y + QUADRANT_SQUARE_SIZE // 2)
+        )
+        SCREEN.blit(row_text, row_text_rect) 
+
             
 def is_adjacent_or_same_sector(player_sector, target_sector):
     """
@@ -1618,15 +1819,17 @@ def prompt_shields_transfer(screen):
 
     while prompt_active:
         # Clear and display the prompt area
-        screen.fill(BLACK, (0, SCREEN_HEIGHT - 100, 500, 100))  # Bottom-left corner
+        SCREEN.fill(BLACK)
         prompt_surface = FONT24.render("Enter Energy Transfer Amount (+/-):", True, WHITE)
-        screen.blit(prompt_surface, (10, SCREEN_HEIGHT - 80))
+        screen.blit(prompt_surface, (PROMPT_ORIGIN_X, PROMPT_ORIGIN_Y))
 
         # Display the current input
         input_surface = FONT24.render(input_text, True, WHITE)
-        screen.blit(input_surface, (10 + prompt_surface.get_width() + 10, SCREEN_HEIGHT - 80))
+        screen.blit(input_surface, (PROMPT_ORIGIN_X + prompt_surface.get_width() + 10, PROMPT_ORIGIN_Y))
 
+        draw_all_to_screen()
         pygame.display.flip()
+        clock.tick(FPS)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -1687,14 +1890,17 @@ def prompt_phaser_power(screen):
     prompt_active = True
 
     while prompt_active:
-        screen.fill(BLACK, (0, SCREEN_HEIGHT - 100, 300, 100))  # Bottom-left corner
+        SCREEN.fill(BLACK)
         prompt_surface = FONT24.render("Enter Phaser Power (0-2000):", True, WHITE)
-        screen.blit(prompt_surface, (10, SCREEN_HEIGHT - 80))
+        screen.blit(prompt_surface, (PROMPT_ORIGIN_X, PROMPT_ORIGIN_Y))
 
         input_surface = FONT24.render(input_text, True, WHITE)
-        screen.blit(input_surface, (10 + prompt_surface.get_width() + 10 , SCREEN_HEIGHT - 80))
+        screen.blit(input_surface, (PROMPT_ORIGIN_X + prompt_surface.get_width() + 10 , PROMPT_ORIGIN_Y))
 
+
+        draw_all_to_screen()
         pygame.display.flip()
+        clock.tick(FPS)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -1722,14 +1928,17 @@ def prompt_warp_factor(screen):
     prompt_active = True
 
     while prompt_active:
-        screen.fill(BLACK, (0, SCREEN_HEIGHT - 100, 300, 100))  # Bottom-left corner
+        SCREEN.fill(BLACK)
         prompt_surface = FONT24.render("Enter Warp Factor (0-10):", True, WHITE)
-        screen.blit(prompt_surface, (10, SCREEN_HEIGHT - 80))
+        screen.blit(prompt_surface, (PROMPT_ORIGIN_X, PROMPT_ORIGIN_Y))
 
         input_surface = FONT24.render(input_text, True, WHITE)
-        screen.blit(input_surface, (10 + prompt_surface.get_width() + 10 , SCREEN_HEIGHT - 80))
+        screen.blit(input_surface, (PROMPT_ORIGIN_X + prompt_surface.get_width() + 10 , PROMPT_ORIGIN_Y))
 
+
+        draw_all_to_screen()
         pygame.display.flip()
+        clock.tick(FPS)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -1758,12 +1967,14 @@ def prompt_direction(screen,prompt_text):
 
     while direction not in directions:
         # Clear the prompt area
-        SCREEN.fill(BLACK, (0, SCREEN_HEIGHT - 100, 400, 100))  # Clear specific area for prompt
+        SCREEN.fill(BLACK)
         # Display the prompt
         prompt_surface = FONT24.render(prompt_text, True, WHITE)
-        SCREEN.blit(prompt_surface, (10, SCREEN_HEIGHT - 80))
+        SCREEN.blit(prompt_surface, (PROMPT_ORIGIN_X, PROMPT_ORIGIN_Y))
 
+        draw_all_to_screen()
         pygame.display.flip()
+        clock.tick(FPS)
 
         # Handle events
         for event in pygame.event.get():
@@ -1782,20 +1993,44 @@ def prompt_direction(screen,prompt_text):
 
                 if direction in directions:
                     print(f"Direction selected: {directions[direction]}")
+     
                     return direction
+
+def draw_compass():
+    """Display a compass guide showing the warp direction numbers."""
+
+
+    guide_text = [
+        "     7    8    9    ",
+        "        ·   ·   ·   ",
+        "          · · ·   ",
+        "  4 - - -   - - - 6    ",
+        "          · · ·   ",
+        "        ·   ·   ·   ",
+        "     1    2    3    ",
+    ]
+
+    y_offset = PROMPT_ORIGIN_Y - 50  # Adjust based on where you want to display it
+    for line in guide_text:
+        text_surface = FONT24.render(line, True, GREEN)
+        SCREEN.blit(text_surface, (COMPASS_ORIGIN_X, y_offset))
+        y_offset += FONT24.get_height()
+
 
 def prompt_sector_target(screen, prompt_text):
     """Prompt the player to input a sector target (e.g., 3,4)."""
     input_text = ""
     while True:
         # Clear the prompt area
-        SCREEN.fill(BLACK, (0, SCREEN_HEIGHT - 100, 400, 100))  # Clear specific area for prompt
+        SCREEN.fill(BLACK)  # Bottom-left corner
         
         # Display the prompt and current input
         prompt_surface = FONT24.render(f"{prompt_text} {input_text}", True, WHITE)
-        SCREEN.blit(prompt_surface, (10, SCREEN_HEIGHT - 80))
+        SCREEN.blit(prompt_surface, (PROMPT_ORIGIN_X, PROMPT_ORIGIN_Y))
 
+        draw_all_to_screen()
         pygame.display.flip()
+        clock.tick(FPS)
 
         # Handle events
         for event in pygame.event.get():
@@ -1823,8 +2058,8 @@ def get_quadrant_name(quadrant_x, quadrant_y):
 
     quadrant_x =  quadrant_x+1
 
-    list_one = ["Antares", "Rigel", "Procyon", "Vega", "Canopus", "Altair", "Sagittarius", "Pollux"]
-    list_two = ["Sirius", "Deneb", "Capella", "Betelgeuse", "Aldebaran", "Regulus", "Arcturus", "Spica"]
+    list_one = ["ANTARES", "RIGEL", "PROCYON", "VEGA", "CANOPUS", "ALTAIR", "SAGITTARIUS", "POLLUX"]
+    list_two = ["SIRIUS", "DENEB", "CAPELLA", "BETELGEUSE", "ALDEBARAN", "REGULUS", "ARCTURUS", "SPICA"]
 
     # Determine which list to use
     if quadrant_x <= 4:
@@ -1834,38 +2069,84 @@ def get_quadrant_name(quadrant_x, quadrant_y):
         chosen_list = list_two
         adjusted_column = quadrant_x - 4  # Subtract 4 for columns >= 5
 
+    adjusted_column = ["", "I", "II", "III", "IV"][adjusted_column]
+
     # Ensure coordinates are within valid bounds
     if 0 <= quadrant_y < len(chosen_list):
-        quadrant_name = f"{chosen_list[quadrant_y]}-{adjusted_column}"
+        quadrant_name = f"{chosen_list[quadrant_y]} {adjusted_column}"
         return quadrant_name
     else:
         return "Unknown Quadrant"  # Return a fallback name for invalid coordinates
 
 
+# def calculate_direction_and_distance(player_x, player_y, enemy_x, enemy_y):
+#     """Calculate the direction (rise/run) and distance between the player and an enemy."""
+#     rise = enemy_y - player_y
+#     run = enemy_x - player_x
+
+#     direction = f"{rise}/{run}" if run != 0 else f"{rise}/0"
+
+#     distance = round(((rise ** 2) + (run ** 2)) ** 0.5, 2)
+#     return direction, distance
+
 def calculate_direction_and_distance(player_x, player_y, enemy_x, enemy_y):
     """Calculate the direction (rise/run) and distance between the player and an enemy."""
     rise = enemy_y - player_y
     run = enemy_x - player_x
-    direction = f"{rise}/{run}" if run != 0 else f"{rise}/0"
-    distance = round(((rise ** 2) + (run ** 2)) ** 0.5, 2)
+
+    # Simplify the fraction using GCD
+    if run != 0:  # Avoid division by zero
+        divisor = math.gcd(rise, run)
+        rise //= divisor
+        run //= divisor
+    elif rise != 0:  # Handle vertical direction where run is 0
+        rise = rise // abs(rise)  # Normalize rise to -1 or 1 for vertical direction
+
+    direction = f"{rise} / {run}" if run != 0 else f"{rise} / 0"
+    
+    # Calculate the distance
+    distance = round(((enemy_y - player_y) ** 2 + (enemy_x - player_x) ** 2) ** 0.5, 2)
     return direction, distance
 
 def display_enemy_readout(screen):
     """
-    Display a line-by-line readout of enemies in the player's current sector.
+    Display a line-by-line readout of enemies in the player's current sector,
+    sorted by increasing distance, with column headers and fixed x positions for each value.
     """
     y_offset = 0
 
     # Header text
     header_text = FONT24.render("SHORT RANGE SCAN:", True, GREEN)
-    screen.blit(header_text, (SCAN_ORIGIN_X, SCAN_ORIGIN_Y))
+    screen.blit(header_text, (SCAN_ORIGIN_X + 90, SCAN_ORIGIN_Y))
     y_offset += FONT24.get_height()
-    header_text = FONT24.render("-------------------------------------------", True, GREEN)
-    screen.blit(header_text, (SCAN_ORIGIN_X, SCAN_ORIGIN_Y + y_offset))
+    separator_text = FONT24.render("------------------------------------------------------------------------------", True, GREEN)
+    screen.blit(separator_text, (SCAN_ORIGIN_X - 10, SCAN_ORIGIN_Y + y_offset))
 
-    # Display each enemy
+    # Column headers
     y_offset += FONT24.get_height()
-    for enemy in player.current_sector.enemies:
+    column_headers = [("Name", SCAN_NAME_X, "left"), ("Direction", SCAN_DIRECTION_X, "center"), ("Distance", SCAN_DISTANCE_X, "center"), 
+                      ("Shield", SCAN_SHIELD_X, "center"), ("Hull", SCAN_HULL_X, "center")]
+
+    for header, x_offset, alignment in column_headers:
+        header_text = FONT24.render(header, True, GREEN)
+
+        if alignment == "left":
+            # Align the "Name" header to the left
+            screen.blit(header_text, (SCAN_ORIGIN_X + x_offset, SCAN_ORIGIN_Y + y_offset))
+        elif alignment == "center":
+            # Center align the other headers
+            text_width = header_text.get_width()
+            column_center = SCAN_ORIGIN_X + x_offset + (100 - text_width) // 2
+            screen.blit(header_text, (column_center, SCAN_ORIGIN_Y + y_offset))
+
+    # Add a separator line below the column headers
+    y_offset += FONT24.get_height()
+    separator_text = FONT24.render("------------------------------------------------------------------------------", True, GREEN)
+    screen.blit(separator_text, (SCAN_ORIGIN_X - 10, SCAN_ORIGIN_Y + y_offset))
+
+    # Create a list of enemies with their distances and directions
+    targets_with_distances = []
+    for enemy in player.current_quadrant.enemies:
         if enemy.grid_x == player.grid_x and enemy.grid_y == player.grid_y:
             continue  # Skip if the enemy is on the same square as the player
 
@@ -1873,25 +2154,120 @@ def display_enemy_readout(screen):
         direction, distance = calculate_direction_and_distance(
             player.grid_x, player.grid_y, enemy.grid_x, enemy.grid_y
         )
+        targets_with_distances.append((enemy, direction, distance))
 
-        # Render enemy info
-        enemy_info = f"{enemy.name}: Dir {direction}, Dist {distance}"
-        enemy_text = FONT24.render(enemy_info, True, RED)
-        screen.blit(enemy_text, (SCAN_ORIGIN_X + 10, SCAN_ORIGIN_Y + y_offset))
+
+    # Add starbase information if present
+    # if player.current_quadrant.has_starbase:
+    for starbase in player.current_quadrant.bases:
+        # starbase_grid_x, starbase_grid_y = base[0], base[1]
+        direction, distance = calculate_direction_and_distance(
+            player.grid_x, player.grid_y, starbase.grid_x, starbase.grid_y
+        )
+        targets_with_distances.append((starbase, direction, distance))
+
+    # Sort enemies by distance
+    targets_with_distances.sort(key=lambda x: x[2])  # Sort by distance (x[2])
+
+    # Display each enemy
+    y_offset += FONT24.get_height()
+    for target, direction, distance in targets_with_distances:
+
+        text_color = GREEN
+        if type(target) == Enemy: text_color = RED
+        elif  type(target) == Base: 
+            text_color = BLUE
+            if player.docked: 
+                direction = "DOCKED"
+                distance  = "DOCKED"
+
+        # Render enemy name
+        target_name_text = FONT24.render(target.name, True, text_color)
+        screen.blit(target_name_text, (SCAN_ORIGIN_X + SCAN_NAME_X, SCAN_ORIGIN_Y + y_offset))
+
+        # Render enemy direction
+        direction_text = FONT24.render(direction, True, text_color)
+        direction_x = SCAN_ORIGIN_X + SCAN_DIRECTION_X + (100 - direction_text.get_width()) // 2
+        screen.blit(direction_text, (direction_x, SCAN_ORIGIN_Y + y_offset))
+
+        # Render enemy distance
+        distance_text = FONT24.render(f"{distance}", True, text_color)
+        distance_x = SCAN_ORIGIN_X + SCAN_DISTANCE_X + (100 - distance_text.get_width()) // 2
+        screen.blit(distance_text, (distance_x, SCAN_ORIGIN_Y + y_offset))
+
+        # Render enemy shield
+
+        shield_text = FONT24.render(f"{target.shields}", True, text_color)
+        if target.shields <= 0:
+            shield_text = FONT24.render(f"--", True, GREY)
+
+        shield_x = SCAN_ORIGIN_X + SCAN_SHIELD_X + (100 - shield_text.get_width()) // 2
+        screen.blit(shield_text, (shield_x, SCAN_ORIGIN_Y + y_offset))
+
+        # Render enemy hull
+        hull_text = FONT24.render(f"{target.hull}", True, text_color)
+        if target.hull <= 0:
+            hull_text = FONT24.render(f"--", True, GREY)
+        hull_x = SCAN_ORIGIN_X + SCAN_HULL_X + (100 - hull_text.get_width()) // 2
+        screen.blit(hull_text, (hull_x, SCAN_ORIGIN_Y + y_offset))
+
         y_offset += FONT24.get_height()  # Increment y-offset for the next enemy
 
+    # Add starbase information if present
+    # if player.current_quadrant.has_starbase:
+    # for base in player.current_quadrant.bases:
+    #     starbase_grid_x, starbase_grid_y = base[0], base[1]
+    #     direction, distance = calculate_direction_and_distance(
+    #         player.grid_x, player.grid_y, starbase_grid_x, starbase_grid_y
+    #     )
+
+    #     # Render starbase name
+    #     starbase_name_text = FONT24.render("STARBASE", True, BLUE)
+    #     screen.blit(starbase_name_text, (SCAN_ORIGIN_X + SCAN_NAME_X, SCAN_ORIGIN_Y + y_offset))
+
+    #     # Render starbase direction
+    #     if player.docked: direction = "DOCKED"
+    #     direction_text = FONT24.render(direction, True, BLUE)
+    #     direction_x = SCAN_ORIGIN_X + SCAN_DIRECTION_X + (100 - direction_text.get_width()) // 2
+    #     screen.blit(direction_text, (direction_x, SCAN_ORIGIN_Y + y_offset))
+
+    #     # Render starbase distance
+    #     if player.docked: distance = "DOCKED"
+    #     distance_text = FONT24.render(f"{distance}", True, BLUE)
+    #     distance_x = SCAN_ORIGIN_X + SCAN_DISTANCE_X + (100 - distance_text.get_width()) // 2
+    #     screen.blit(distance_text, (distance_x, SCAN_ORIGIN_Y + y_offset))
+
+    #     # Render starbase shield
+    #     shield_text = FONT24.render(f"--", True, GREY)
+    #     shield_x = SCAN_ORIGIN_X + SCAN_SHIELD_X + (100 - shield_text.get_width()) // 2
+    #     screen.blit(shield_text, (shield_x, SCAN_ORIGIN_Y + y_offset))
+
+    #     # Render starbase hull
+    #     hull_text = FONT24.render(f"--", True, GREY)
+    #     hull_x = SCAN_ORIGIN_X + SCAN_HULL_X + (100 - hull_text.get_width()) // 2
+    #     screen.blit(hull_text, (hull_x, SCAN_ORIGIN_Y + y_offset))
+
+    #     y_offset += FONT24.get_height()  # Increment y-offset 
 
 
-def prompt_numeric_input(prompt_text, min_value, max_value):
+
+def prompt_numeric_input(prompt_text, min_value, max_value, compass=False):
     """Prompts the player for numeric input (including negative numbers) and shows input as it's typed."""
     input_text = ""  # Start with an empty string
     while True:
-        SCREEN.fill(BLACK, (0, SCREEN_HEIGHT - 100, 400, 100))  # Bottom-left corner
+        SCREEN.fill(BLACK)
+
         
         # Render the prompt and current input
         prompt_surface = FONT24.render(f"{prompt_text} {input_text}", True, WHITE)
-        SCREEN.blit(prompt_surface, (10, SCREEN_HEIGHT - 80))
+        SCREEN.blit(prompt_surface, (PROMPT_ORIGIN_X, PROMPT_ORIGIN_Y))
+
+        if compass:
+            draw_compass()
+        
+        draw_all_to_screen()
         pygame.display.flip()
+        clock.tick(FPS)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -1947,7 +2323,13 @@ def prompt_numeric_input(prompt_text, min_value, max_value):
 
 
 
+def draw_all_to_screen(): # for use when in a prompt.
 
+    draw_alert_info(SCREEN)
+    draw_sector_map()
+    draw_reports()
+    display_enemy_readout(SCREEN)
+    draw_quadrant_map(player)
 
 
 
@@ -2006,7 +2388,11 @@ def main():
                     elif event.key == pygame.K_DOWN:
                         player.move(0, 1)
                         key_pressed = True
-                    elif event.key == pygame.K_SPACE:
+                    elif event.key == pygame.K_SPACE: # REST
+                        player.move(0, 0)
+                        key_pressed = True
+
+                    elif event.key == pygame.K_r: #REST
                         player.move(0, 0)
                         key_pressed = True
 
@@ -2073,7 +2459,7 @@ def main():
 
 
                     if key_pressed and (player.turn != 0):#### ENEMY TURN ??
-                        for enemy in player.current_sector.enemies:
+                        for enemy in player.current_quadrant.enemies:
                             if enemy.trigger_update_time is None:
                                 enemy.trigger_update(players_turn)
 
@@ -2097,8 +2483,8 @@ def main():
 
         draw_sector_map()
 
-        for enemy in player.current_sector.enemies:
-            enemy.update(player.current_sector,players_turn)
+        for enemy in player.current_quadrant.enemies:
+            enemy.update(player.current_quadrant,players_turn)
 
         projectile_group.update() 
         for projectile in projectile_group:
