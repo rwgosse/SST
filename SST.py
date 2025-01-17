@@ -41,10 +41,10 @@ SCAN_ORIGIN_X = GRID_ORIGIN_X + (QUADRANT_SIZE * SQUARE_SIZE) + 50
 SCAN_ORIGIN_Y = GRID_ORIGIN_Y
 
 SCAN_NAME_X = 0
-SCAN_DIRECTION_X = 85
-SCAN_DISTANCE_X = 185
-SCAN_SHIELD_X = 260
-SCAN_HULL_X = 310
+SCAN_DIRECTION_X = 110
+SCAN_DISTANCE_X = 215
+SCAN_SHIELD_X = 300
+SCAN_HULL_X = 360
 
 PROMPT_ORIGIN_X = 80 
 PROMPT_ORIGIN_Y = SCREEN_HEIGHT - 80
@@ -52,8 +52,12 @@ PROMPT_AREA = (PROMPT_ORIGIN_X, SCREEN_HEIGHT - 90, 300, 200)  # Bottom-left cor
 COMPASS_ORIGIN_X = SCAN_ORIGIN_X
 # Colors (RGB values)
 WHITE = (255, 255, 255)
-DARK_GREY = (50, 50, 50)
+OFF_WHITE = (200, 200, 200)
+LIGHT_GREY = (150, 150, 150)
 GREY = (128, 128, 128)
+MIDDLE_GREY = (100, 100, 100)
+DARK_GREY = (50, 50, 50)
+NEAR_BLACK = (25, 25, 50)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 DARK_RED = (50, 0, 0)
@@ -64,15 +68,25 @@ DARK_GREEN =(0,50,0)
 BLUE = (0, 0, 255)
 DARK_BLUE = (0, 0, 128)
 
+# Define the shades from WHITE to BLACK
+SHADE_COLOR_CYCLE = [WHITE, WHITE, OFF_WHITE, OFF_WHITE,LIGHT_GREY, GREY, MIDDLE_GREY, DARK_GREY, NEAR_BLACK, DARK_GREY, MIDDLE_GREY,GREY, LIGHT_GREY,OFF_WHITE,OFF_WHITE,WHITE,WHITE]
+color_index = 0  # To track the current color index
+color_change_timer = 0  # Timer to control the color cycling speed
+COLOR_CHANGE_INTERVAL = 100  # Time in milliseconds between color changes
+
 # Fonts
+FONT22 = pygame.font.Font(None, 22)
 FONT24 = pygame.font.Font(None, 24)
 
+
+MAX_NUM_OF_BASES = 5
 
 MAX_ENERGY = 3000
 BASE_RELOAD_ENERGY = 3000
 WARP_ENERGY_PER = 100
 RAISE_SHIELD_PER = 50
 SHIELD_LEVELS = [0, 25, 50, 75, 100]
+MAX_CREW = 100
 MAX_HULL = 1000
 MAX_SHIELDS = 2000
 BASE_RELOAD_SHIELD = 2000
@@ -81,6 +95,16 @@ MAX_TORPEDO_QTY = 10
 TORPEDO_DAMAGE = 500
 TORPEDO_SPEED = 0.5
 TORPEDO_ENERGY_USAGE = 50
+
+CHANCE_OF_TORPEDO_MISS = 0.01
+MISS_CHANCE_INCREASE_PER = 0.01
+
+ENERGY_CHARGE_TICK = 20
+HULL_REPAIR_TICK = 5
+
+STARDATE_PER_REPAIR_TICK = 0.015
+
+CAPTAIN_BOX_SCALE = 3
 
 
 ### END CONSTANTS ###########################################################################################################
@@ -99,6 +123,102 @@ ENEMY_SHIP = pygame.image.load("avenger.png").convert_alpha()
 GRID_BACKGROUND = pygame.image.load("starfield.png").convert_alpha()
 GRID_BACKGROUND = pygame.transform.scale(GRID_BACKGROUND, (GRID_SIZE * SQUARE_SIZE, GRID_SIZE * SQUARE_SIZE)) 
 
+
+
+ALL_PLANET_IMAGES = [
+    {"name": "RAINBOW_IMAGE", "file": "rainbow.png"},
+    {"name": "AZURE_IMAGE", "file": "azure.png"},
+    {"name": "ACID_IMAGE", "file": "acid.png"},
+    {"name": "ALKALI_IMAGE", "file": "alkali.png"},
+    {"name": "AURIC_IMAGE", "file": "auric.png"},
+    {"name": "CARBIDE_IMAGE", "file": "carbide.png"},
+    {"name": "CRIMSON_IMAGE", "file": "crimson.png"},
+    {"name": "CIMMERIAN_IMAGE", "file": "cimmerian.png"},
+    {"name": "COPPER_IMAGE", "file": "copper.png"},
+    {"name": "CHLORINE_IMAGE", "file": "chlorine.png"},
+    {"name": "CHONDRITE_IMAGE", "file": "chondrite.png"},
+    {"name": "CYANIC_IMAGE", "file": "cyanic.png"},
+    {"name": "DUST_IMAGE", "file": "dust.png"},
+    {"name": "EMERALD_IMAGE", "file": "emerald.png"},
+    {"name": "FLOURESCENT_IMAGE", "file": "fluorescent.png"},
+    {"name": "GREEN_IMAGE", "file": "green.png"},
+    {"name": "HALIDE_IMAGE", "file": "halide.png"},
+    {"name": "HYDROCARBON_IMAGE", "file": "hydrocarbon.png"},
+    {"name": "IODINE_IMAGE", "file": "iodine.png"},
+    {"name": "INFRARED_IMAGE", "file": "infrared.png"},
+    {"name": "NOBLE_IMAGE", "file": "noble.png"},
+    {"name": "METAL_IMAGE", "file": "metal.png"},
+    {"name": "MAGMA_IMAGE", "file": "magma.png"},
+    {"name": "MAROON_IMAGE", "file": "maroon.png"},
+    {"name": "MAGNETIC_IMAGE", "file": "magnetic.png"},
+    {"name": "OPALESCENT_IMAGE", "file": "opalescent.png"},
+    {"name": "ORGANIC_IMAGE", "file": "organic.png"},
+    {"name": "OOLITE_IMAGE", "file": "oolite.png"},
+    {"name": "PELLUCID_IMAGE", "file": "pellucid.png"},
+    {"name": "PRIMORDIAL_IMAGE", "file": "primordial.png"},
+    {"name": "PURPLE_IMAGE", "file": "purple.png"},
+    {"name": "PLUTONIC_IMAGE", "file": "plutonic.png"},
+    {"name": "QUASI_DEGEN_IMAGE", "file": "quasidegenerate.png"},
+    {"name": "SAPPHIRE_IMAGE", "file": "sapphire.png"},
+    {"name": "RADIOACTIVE_IMAGE", "file": "radioactive.png"},
+    {"name": "REDUX_IMAGE", "file": "redux.png"},
+    {"name": "RUBY_IMAGE", "file": "ruby.png"},
+    {"name": "SHATTERED_IMAGE", "file": "shattered.png"},
+    {"name": "SELENIC_IMAGE", "file": "selenic.png"},
+    {"name": "SLAVE_IMAGE", "file": "slaveshield.png"},
+    {"name": "SUPERDENSE_IMAGE", "file": "superdense.png"},
+    {"name": "TREASURE_IMAGE", "file": "treasure.png"},
+    {"name": "VINYLOGOUS_IMAGE", "file": "vinylogous.png"},
+    {"name": "TELLURIC_IMAGE", "file": "telluric.png"},
+    {"name": "ULTRAMARINE_IMAGE", "file": "ultramarine.png"},
+    {"name": "ULTRAVIOLET_IMAGE", "file": "ultraviolet.png"},
+    {"name": "UREA_IMAGE", "file": "urea.png"},
+    {"name": "LANTHANIDE_IMAGE", "file": "lanthanide.png"},
+    {"name": "WATER_IMAGE", "file": "water.png"},
+    {"name": "XENOLITHIC_IMAGE", "file": "xenolithic.png"},
+    {"name": "YTTRIC_IMAGE", "file": "yttric.png"},
+    {"name": "BLUEGASIMAGE", "file": "bluegas.png"},
+    {"name": "GREENGASIMAGE", "file": "greengas.png"},
+    {"name": "GREYGASIMAGE", "file": "greygas.png"},
+    {"name": "PURPLEGASIMAGE", "file": "purplegas.png"},
+    {"name": "REDGASIMAGE", "file": "redgas.png"},
+    {"name": "VIOLETGASIMAGE", "file": "violetgas.png"},
+    {"name": "YELLOWGASIMAGE", "file": "yellowgas.png"},
+]
+
+CRUISER_CAPTAIN_000 = pygame.image.load("cruiser-cap-000.png").convert_alpha() 
+
+CRUISER_CAPTAIN_001 = pygame.image.load("cruiser-cap-001.png").convert_alpha() 
+CRUISER_CAPTAIN_002 = pygame.image.load("cruiser-cap-002.png").convert_alpha()  
+CRUISER_CAPTAIN_003 = pygame.image.load("cruiser-cap-003.png").convert_alpha() 
+CRUISER_CAPTAIN_004 = pygame.image.load("cruiser-cap-004.png").convert_alpha() 
+CRUISER_CAPTAIN_005 = pygame.image.load("cruiser-cap-005.png").convert_alpha() 
+CRUISER_CAPTAIN_006 = pygame.image.load("cruiser-cap-006.png").convert_alpha() 
+CRUISER_CAPTAIN_007 = pygame.image.load("cruiser-cap-007.png").convert_alpha() 
+CRUISER_CAPTAIN_008 = pygame.image.load("cruiser-cap-008.png").convert_alpha() 
+CRUISER_CAPTAIN_009 = pygame.image.load("cruiser-cap-009.png").convert_alpha() 
+CRUISER_CAPTAIN_010 = pygame.image.load("cruiser-cap-010.png").convert_alpha() 
+CRUISER_CAPTAIN_011 = pygame.image.load("cruiser-cap-011.png").convert_alpha() 
+CRUISER_CAPTAIN_012 = pygame.image.load("cruiser-cap-012.png").convert_alpha() 
+CRUISER_CAPTAIN_013 = pygame.image.load("cruiser-cap-013.png").convert_alpha() 
+CRUISER_CAPTAIN_014 = pygame.image.load("cruiser-cap-014.png").convert_alpha() 
+
+CRUISER_CAPTAIN_ADDITIONALS = [
+    (CRUISER_CAPTAIN_001, -33, -9),
+    (CRUISER_CAPTAIN_002, -33, -9),
+    (CRUISER_CAPTAIN_003, -33, -9),
+    (CRUISER_CAPTAIN_004, -33, -9),
+    (CRUISER_CAPTAIN_005, -33, -9),
+    (CRUISER_CAPTAIN_006, -44, -7),
+    (CRUISER_CAPTAIN_007, -44, -7),
+    (CRUISER_CAPTAIN_008, -44, -7),
+    (CRUISER_CAPTAIN_009, 0, -5),
+    (CRUISER_CAPTAIN_010, 0, -5),
+    (CRUISER_CAPTAIN_011, 0, -5),
+    (CRUISER_CAPTAIN_012, -19, -2),
+    (CRUISER_CAPTAIN_013, -19, -2),
+    (CRUISER_CAPTAIN_014, -19, -2),
+]
 
 
 
@@ -124,6 +244,7 @@ EXPLOSION_CHANNEL.set_volume(0.1)
 SHIP_DEATH_SOUND = pygame.mixer.Sound("shipdies.wav")
 MEDIUM_EXPLOSION = pygame.mixer.Sound("boom-medium.wav")
 WARP_SOUND = pygame.mixer.Sound("tng_slowwarp_clean.mp3")
+HURT = pygame.mixer.Sound("land_hrt.wav") 
 
 MUSIC_CHANNEL = pygame.mixer.Channel(4)
 MUSIC_CHANNEL.set_volume(.30)
@@ -135,6 +256,8 @@ VICTORY_DITTY_PLUS20 = pygame.mixer.Sound("earthling-ditty_plus20.mp3")
 VICTORY_DITTY_MINUS20 = pygame.mixer.Sound("earthling-ditty_minus20.mp3")
 VICTORY_DITTY_PLUS30 = pygame.mixer.Sound("earthling-ditty_plus30.mp3")
 VICTORY_DITTY_MINUS30 = pygame.mixer.Sound("earthling-ditty_minus30.mp3")
+
+ENEMY_DITTY = pygame.mixer.Sound("ilwrath-ditty.mp3")
 
 VICTORY_DITTIES = [VICTORY_DITTY,VICTORY_DITTY_PLUS10, VICTORY_DITTY_MINUS10, VICTORY_DITTY_PLUS20,VICTORY_DITTY_MINUS20, VICTORY_DITTY_PLUS30, VICTORY_DITTY_MINUS30]
 # -----------------------------------------------------------------------------
@@ -167,14 +290,20 @@ class Player(pygame.sprite.Sprite):
         self.quadrant_y = random.randint(0,7)
 
         self.torpedo_qty = 10
+
         self.energy = BASE_RELOAD_ENERGY
 
-        self.hull = MAX_HULL
+        
 
         self.shield_energy = BASE_RELOAD_SHIELD
         self.shields = 0
         self.shields_on = False
         self.shield_level = 0
+
+        self.hull = MAX_HULL
+
+        self.crew = MAX_CREW
+
         self.num_enemies = 0
         self.num_starbases = 0
         self.max_warp = min(10, self.energy // WARP_ENERGY_PER)
@@ -184,7 +313,9 @@ class Player(pygame.sprite.Sprite):
         self.offset_x = 0 
         self.offset_y = 0 
         self.inDockingRange = None
+        self.inOrbitRange = None
         self.docked = False
+        self.inOrbit = False
 
         self.update_position()
 
@@ -195,7 +326,9 @@ class Player(pygame.sprite.Sprite):
 
         self.turn = 0
 
-        
+        self.crew_loss_timer = 0  # Tracks time for crew loss checks
+
+        self.is_dead = False
 
 
     def generate_all_sectors(self):
@@ -206,7 +339,7 @@ class Player(pygame.sprite.Sprite):
                 
                 # Create a new sector and generate its content (stars, bases)
                 sector = Sector(quadrant_x, quadrant_y)
-                sector.generate(self.grid_x, self.grid_y)
+                sector.generate(self, self.grid_x, self.grid_y)
                 
                 # Store the sector in the visited_sectors dictionary
                 self.all_sectors.append(sector)
@@ -231,7 +364,7 @@ class Player(pygame.sprite.Sprite):
             if (self.quadrant_x == sector.quadrant_x) and (self.quadrant_y == sector.quadrant_y):
 
                 # Ensure player's starting position isn't on a star or base
-                while (sector.is_star_at(self.grid_x, self.grid_y)) or (sector.is_base_at(self.grid_x, self.grid_y)) or (sector.is_enemy_at(self.grid_x, self.grid_y)):
+                while (sector.is_star_at(self.grid_x, self.grid_y)) or (sector.is_base_at(self.grid_x, self.grid_y)) or (sector.is_enemy_at(self.grid_x, self.grid_y)) or (sector.is_planet_at(self.grid_x, self.grid_y)):
                     self.move_away_from_star_or_base(sector)
 
                 if sector != self.current_quadrant: #ENTERING A NEW SECTOR
@@ -243,7 +376,8 @@ class Player(pygame.sprite.Sprite):
 
 
                     if sector.count_enemies() >=1 :
-                        ALARM_CHANNEL.play(RED_ALERT,1)
+                        ALARM_CHANNEL.play(RED_ALERT,2)
+                        # MUSIC_CHANNEL.play(ENEMY_DITTY)
 
 
                     for enemy in sector.enemies:
@@ -270,14 +404,54 @@ class Player(pygame.sprite.Sprite):
             if not sector.is_star_at(nx, ny):
                 if not sector.is_base_at(nx, ny):
                     if not sector.is_enemy_at(nx, ny):
-                        self.grid_x, self.grid_y = nx, ny
-                        self.update_position()
-                        print("Evasive!")
-                        return
+                        if not sector.is_planet_at(nx, ny):
+                            self.grid_x, self.grid_y = nx, ny
+                            self.update_position()
+                            print("Evasive!")
+                            return
         
         print(f"Warning: No valid adjacent square found for the player. Staying at ({self.grid_x}, {self.grid_y}).")
 
-        
+    
+    def check_hull_and_crew(self, delta_time):
+        """Check if the player's hull is below 0 and potentially kill crew members."""
+        if self.hull <= 0:
+            self.crew_loss_timer += delta_time
+            if self.crew_loss_timer >= 100:  # 500ms (half a second)
+                self.crew_loss_timer = 0  # Reset the timer
+
+                # 10% chance to lose a crew member
+                if self.crew > 0:
+                    if random.random() < 0.5:
+                        self.crew -= random.randint(1,5)
+                        if player.crew <= 0: 
+                            player.crew = 0
+
+                        EXPLOSION_CHANNEL.play(HURT)
+                        print(f"Critical damage! Crew have been lost. Remaining crew: {self.crew}")
+                        
+                        
+                        if random.random() < 0.1:
+                            print("Hull Integrity Restored")
+                            self.hull = 1 # chance hull is restored
+
+                        if len(self.current_quadrant.enemies) <= 0:
+                            print("Hull Integrity Restored")
+                            self.hull = 1 # chance hull is restored
+
+
+                else:
+                    if not self.is_dead:
+                        print("All crew members have been lost!")
+                        self.explode(self.grid_x,self.grid_y,SQUARE_SIZE*1.5,2,2,sound=SHIP_DEATH_SOUND)
+                        self.is_dead = True
+
+                    # self.end_game()
+            else:
+                print("Hull breach detected!")
+        else:
+            self.crew_loss_timer = 0  # Reset the timer if the hull is stable
+
 
     def update_position(self):
         """Update the player's rect position based on the grid coordinates."""
@@ -285,20 +459,51 @@ class Player(pygame.sprite.Sprite):
         player_draw_y = GRID_ORIGIN_Y + (round(self.grid_y) * SQUARE_SIZE) + self.offset_y
         self.rect.topleft = (player_draw_x, player_draw_y)
 
-        # if self.condition == "BLUE": 
-        if self.docked:
-            if self.energy < BASE_RELOAD_ENERGY:
-                self.energy = BASE_RELOAD_ENERGY
 
-            self.torpedo_qty = MAX_TORPEDO_QTY
-            self.hull = MAX_HULL
+        # if self.hull <= 0:
+        #     print("The player's ship's hull has been breached!")
+        #     self.hull = 0
+        #     # CHANCE OF CREW GETTING KILLED:
+        #     if random.random() < .99:
+        #         self.crew -= random.randint(1,5)
+        #         if self.crew <= 0:
+        #             self.crew = 0
+
+        # if self.condition == "BLUE": 
+
+        ### RECHARGE / REPAIR AT STARBASE ###
+        if self.docked:
+            repairing = False 
+            if self.energy < BASE_RELOAD_ENERGY:
+                self.energy += ENERGY_CHARGE_TICK
+                repairing = True
+
+            if self.torpedo_qty < MAX_TORPEDO_QTY:
+                self.torpedo_qty += 1
+                repairing = True
+
+            if self.crew < MAX_CREW:
+                self.crew += 1
+                repairing = True
+
+            if self.hull < MAX_HULL:
+                self.hull += HULL_REPAIR_TICK
+                repairing = True
 
             if self.shield_energy < BASE_RELOAD_SHIELD:
-                self.shield_energy = BASE_RELOAD_SHIELD
+                self.shield_energy += ENERGY_CHARGE_TICK
+                repairing = True
+
+            if repairing:
+                self.stardate += STARDATE_PER_REPAIR_TICK
+
             if self.shields_on == True:
 
                 player.shields_toggle()
 
+        # DON"T EXCEED LIMITED ####
+        if self.shield_energy >= MAX_SHIELDS:
+            self.shield_energy = MAX_SHIELDS
 
         if self.energy >= MAX_ENERGY:
             self.energy = MAX_ENERGY
@@ -342,6 +547,36 @@ class Player(pygame.sprite.Sprite):
             self.offset_y = 0 
             print("Undocked from starbase!")
 
+    def toggle_orbit(self, planet):
+        """
+        Toggles the player's docking status.
+        If condition is 'BLUE', docks the player and offsets the position towards the starbase.
+        """
+        if self.inOrbit == False:
+            if self.inOrbitRange is not None:
+                self.inOrbit = True
+
+                ALARM_CHANNEL.play(POWER_UP)
+
+                # Calculate the offset
+                self.offset_x = (planet[0] - self.grid_x) * (SQUARE_SIZE // 2)
+                self.offset_y = (planet[1] - self.grid_y) * (SQUARE_SIZE // 2)
+
+                # Apply the offset to the player's sprite position
+                # self.rect.x += offset_x
+                # self.rect.y += offset_y
+                print("Entered Planetary Orbit!")
+
+            else:
+                self.inOrbit = False
+                print("Cannot enter orbit unless in range")
+
+        elif self.inOrbit:
+            self.inOrbit = False
+            self.offset_x = 0 
+            self.offset_y = 0 
+            print("Left Planetary Orbit!")
+
 
 
 
@@ -372,39 +607,39 @@ class Player(pygame.sprite.Sprite):
             else:
                 print("Shield Level set too low")
 
+    def explode(self, x, y, max_size, start_size, growth_rate, sound=MEDIUM_EXPLOSION):
+        global projectile_group
+        """Handle explosion visuals and sound."""
+        print('Explosion !')
+        explosion_x = GRID_ORIGIN_X + x * SQUARE_SIZE + SQUARE_SIZE // 2
+        explosion_y = GRID_ORIGIN_Y + y * SQUARE_SIZE + SQUARE_SIZE // 2
+        explosion = Explosion((explosion_x, explosion_y), max_size, start_size, growth_rate)
+        projectile_group.add(explosion)
+        EXPLOSION_CHANNEL.play(sound)
+
                 
-
-
-        
-    def fire_phasers(self,):
-        """Fire phasers and damage enemies in the current sector."""
+    def fire_phasers(self):
+        """Fire phasers and damage enemies in the current sector, with a delay for each phaser blast."""
+        phaser_power = prompt_phaser_power(SCREEN)
         num_enemy = self.current_quadrant.count_enemies()
-        
-        if num_enemy >= 1:
 
-            phaser_power = prompt_phaser_power(SCREEN)
-            if phaser_power > 0:
+        if phaser_power > 0:
+            if phaser_power <= self.energy:
+                
+                self.energy -= phaser_power
 
-                if phaser_power <= self.energy:
-                    
-                    self.energy -= phaser_power
-
+                if num_enemy > 0:  # Only fire phasers if there are enemies present
                     damage = phaser_power // num_enemy
 
-                    WEAPON_CHANNEL.play(PHASER_SOUND)
-
-                    # Apply damage to each enemy
-                    for enemy in self.current_quadrant.enemies:
-                        # Create and add a phasor blast
-                        phasor_blast = Phasor_blast(self.grid_x, self.grid_y, enemy.grid_x, enemy.grid_y, WHITE)
-                        projectile_group.add(phasor_blast)
+                    def fire_single_phaser(enemy):
+                        WEAPON_CHANNEL.play(PHASER_SOUND)
+                        """Handle the logic for firing a phaser at a single enemy."""
+                        # Create and add a phaser blast
+                        phaser_blast = Phaser_blast(self.grid_x, self.grid_y, enemy.grid_x, enemy.grid_y, WHITE)
+                        projectile_group.add(phaser_blast)
 
                         distance = abs(math.sqrt((self.grid_x - enemy.grid_x) ** 2 + (self.grid_y - enemy.grid_y) ** 2))
-                        
-
-                        range_reduction = (int(distance)-1) * 5
-
-                        
+                        range_reduction = (int(distance) - 1) * 5
                         remaining_damage = damage - range_reduction
 
                         # Add randomness to the damage
@@ -430,47 +665,67 @@ class Player(pygame.sprite.Sprite):
                             enemy.hull -= remaining_damage
                             print(f"HIT! {enemy.name} HULL: {hull_before} -> {enemy.hull}")
 
-                        # Reduce phaser power
-                        phaser_power -= damage
-
-                        # Remove destroyed enemies
-                        remaining_enemies = []
-                        for enemy in self.current_quadrant.enemies:
-                            if enemy.hull <= 0:
-
-                                print(f"{enemy.name} destroyed!")
-                                EXPLOSION_CHANNEL.play(SHIP_DEATH_SOUND)
-                                enemy_x =  GRID_ORIGIN_X + (enemy.grid_x * SQUARE_SIZE) + SQUARE_SIZE//2
-                                enemy_y =  GRID_ORIGIN_Y + (enemy.grid_y * SQUARE_SIZE) + SQUARE_SIZE//2
-                                enemy_position = (enemy_x, enemy_y)
-                                explosion = Explosion(enemy_position, max_size=SQUARE_SIZE, start_size=5, growth_rate=2)
-                                projectile_group.add(explosion)
-                                enemy.die()
-                            else:
-                                remaining_enemies.append(enemy)
-                                EXPLOSION_CHANNEL.play(MEDIUM_EXPLOSION)
-                                enemy_x =  GRID_ORIGIN_X + (enemy.grid_x * SQUARE_SIZE) + SQUARE_SIZE//2
-                                enemy_y =  GRID_ORIGIN_Y + (enemy.grid_y * SQUARE_SIZE) + SQUARE_SIZE//2
-                                enemy_position = (enemy_x, enemy_y)
-                                explosion = Explosion(enemy_position, max_size=SQUARE_SIZE//3, start_size=1,growth_rate=2)
-                                projectile_group.add(explosion)
-
-                        # Update the sector's enemies list
-                        self.current_quadrant.enemies = remaining_enemies
 
 
-                    # Check if all enemies are destroyed, and play victory sound
-                    if len(self.current_quadrant.enemies) == 0:
-                        play_delayed_sound(MUSIC_CHANNEL, random.choice(VICTORY_DITTIES), 1)
+
+                        # Handle enemy destruction
+                        if enemy.hull <= 0:
+                            print(f"{enemy.name} destroyed!")
+                            EXPLOSION_CHANNEL.play(SHIP_DEATH_SOUND)
+                            enemy_x = GRID_ORIGIN_X + (enemy.grid_x * SQUARE_SIZE) + SQUARE_SIZE // 2
+                            enemy_y = GRID_ORIGIN_Y + (enemy.grid_y * SQUARE_SIZE) + SQUARE_SIZE // 2
+                            enemy_position = (enemy_x, enemy_y)
+                            explosion = Explosion(enemy_position, max_size=SQUARE_SIZE, start_size=5, growth_rate=2)
+                            projectile_group.add(explosion)
+
+
+                            enemy.die()
+
+                            # Check if all enemies are destroyed, and play victory sound
+                            if len(self.current_quadrant.enemies) == 0:
+                                print("last enemy destroyed")
+                                play_delayed_sound(MUSIC_CHANNEL, random.choice(VICTORY_DITTIES), 1)
+                                # Re-enter the sector to ensure state consistency
+                                self.enter_sector(self.quadrant_x, self.quadrant_y)
+
+                        else:
+                            self.explode(enemy.grid_x, enemy.grid_y, max_size=SQUARE_SIZE //4 , start_size=1, growth_rate=2)
+
+                    # Schedule each phaser blast with a delay
+                    for i, enemy in enumerate(self.current_quadrant.enemies):
+                        delay = i * 0.25  # 0.3 seconds between each phaser blast
+                        threading.Timer(delay, fire_single_phaser, args=(enemy,)).start()
+
+
+
+
+
+
+                    # Update remaining enemies after all blasts are scheduled
+                    self.current_quadrant.enemies = [e for e in self.current_quadrant.enemies if e.hull > 0]
+
+
+
+
+                    
                     
 
                     # Re-enter the sector to ensure state consistency
                     self.enter_sector(self.quadrant_x, self.quadrant_y)
+                else:
+                    print("No Phaser Targets Available")
+                    WEAPON_CHANNEL.play(PHASER_SOUND)
+            else:
+                print("Phaser Energy would exceed Available Energy")
+        else:
+            print("Zero Phaser Power Entered")
+
+
 
 
 
     def fire_torpedo(self):
-        """Prompt the player to fire up to 3 torpedoes, selecting all targets first, then firing simultaneously."""
+        """Prompt the player to fire up to 3 torpedoes, selecting all targets first, then firing with delays."""
         max_torpedoes = 3
         num_torpedoes = prompt_numeric_input("Enter torpedoes to fire (0-3): ", 0, max_torpedoes)
 
@@ -482,34 +737,37 @@ class Player(pygame.sprite.Sprite):
             num_torpedoes = self.torpedo_qty
             print("Insufficient qty torpedoes.")
 
-
+        # Collect target directions for each torpedo
         targets = []
-        # Prompt for each torpedo's direction (rise/run)
         for i in range(num_torpedoes):
             rise = prompt_numeric_input(f"Enter direction for Torpedo {i + 1}: ", -GRID_SIZE, GRID_SIZE)
-            run  = prompt_numeric_input(f"Enter direction for Torpedo {i + 1}:  {rise} / ", -GRID_SIZE, GRID_SIZE)
+            run = prompt_numeric_input(f"Enter direction for Torpedo {i + 1}:  {rise} / ", -GRID_SIZE, GRID_SIZE)
             targets.append((rise, run))
             print(f"Direction selected for Torpedo {i + 1}: Rise: {rise}, Run: {run}")
 
-        # Fire all torpedoes at the same time
-        for i, (rise, run) in enumerate(targets):
+        # Define a helper function to fire a single torpedo
+        def fire_single_torpedo(index, rise, run):
+            """Fire a single torpedo."""
             if self.torpedo_qty >= 1:
                 if self.energy >= TORPEDO_ENERGY_USAGE:
-                    torpedo = Torpedo(i + 1,self.grid_x, self.grid_y, rise, run)
+                    torpedo = Torpedo(index + 1, self.grid_x, self.grid_y, rise, run)
                     projectile_group.add(torpedo)
                     self.torpedo_qty -= 1
                     self.energy -= TORPEDO_ENERGY_USAGE
-                    print(f"Torpedo {i + 1} fired with direction Rise: {rise}, Run: {run}!")
+                    print(f"Torpedo {index + 1} fired with direction Rise: {rise}, Run: {run}!")
                     WEAPON_CHANNEL.play(MISSILE_SOUND)
 
-                    if self.torpedo_qty <= 0 : 
+                    if self.torpedo_qty <= 0:
                         print("Torpedo Stock Depleted")
-
                 else:
                     print("Insufficient energy for Torpedo")
             else:
                 print("Torpedo Stock Depleted")
 
+        # Fire each torpedo with a short delay between them
+        for i, (rise, run) in enumerate(targets):
+            delay = i * 0.25  # Delay of 0.25 seconds between torpedoes
+            threading.Timer(delay, fire_single_torpedo, args=(i, rise, run)).start()
 
     def activate_warp(self):
         """Prompt the player to select a warp factor and move the player."""
@@ -602,61 +860,6 @@ class Player(pygame.sprite.Sprite):
 
 
 
-    # def activate_warp(self):
-    #     """Prompt the player to select a warp factor and move the player."""
-    #     warp_factor = prompt_warp_factor(SCREEN)
-
-    #     if warp_factor > 0:
-
-    #         self.stardate += (1 * warp_factor)
-
-    #         # Ask for the direction (e.g., N, S, E, W)
-    #         direction = prompt_direction(SCREEN,"Use Arrow Keys to Select Warp Direction:")
-
-    #         # Calculate the new sector based on the warp factor and direction
-    #         new_x, new_y = self.quadrant_x, self.quadrant_y
-    #         if direction == "N":
-    #             new_y -= warp_factor
-    #             self.last_move_direction = "up"
-    #             self.image = self.orig_image
-
-    #         elif direction == "S":
-    #             new_y += warp_factor
-    #             self.last_move_direction = "down"
-    #             self.image = pygame.transform.flip(self.orig_image, False, True)
-
-    #         elif direction == "E":
-    #             self.last_move_direction = "right"
-    #             new_x += warp_factor
-    #             self.image = pygame.transform.rotate(self.orig_image, -90)
-
-    #         elif direction == "W":
-    #             self.last_move_direction = "left"
-    #             new_x -= warp_factor
-    #             self.image = pygame.transform.rotate(self.orig_image, 90)
-
-    #         # Clamp the new position to within the grid boundaries
-    #         new_x = max(0, min(GRID_SIZE - 1, new_x))
-    #         new_y = max(0, min(GRID_SIZE - 1, new_y))
-
-    #         print(f"Warping to sector ({new_x}, {new_y}) at Warp {warp_factor}.")
-    #         self.turn = 0
-    #         if self.shields_on:
-    #             self.energy -= (warp_factor * WARP_ENERGY_PER)*2
-    #         else:
-    #             self.energy -= (warp_factor * WARP_ENERGY_PER)
-
-    #         EXPLOSION_CHANNEL.play(WARP_SOUND)
-
-    #         # Enter the new sector
-    #         self.quadrant_x = new_x
-    #         self.quadrant_y = new_y
-    #         self.current_quadrant = self.enter_sector(new_x, new_y)
-    #         self.update_position()
-
-
-
-
 
     def move(self, dx, dy):
         """Move the player in the grid, ensuring it stays within bounds and handles quadrant transitions."""
@@ -664,6 +867,11 @@ class Player(pygame.sprite.Sprite):
 
         if player.docked : 
             player.toggle_dock((self.grid_x,self.grid_y))
+            dx = 0
+            dy = 0
+
+        if player.inOrbit:
+            player.toggle_orbit((self.grid_x,self.grid_y))
             dx = 0
             dy = 0
 
@@ -692,6 +900,11 @@ class Player(pygame.sprite.Sprite):
 
             if self.current_quadrant.is_enemy_at(new_x, new_y):
                 print("Movement blocked by an enemy!")
+                return  # Don't move if there's a star in the way
+
+
+            if self.current_quadrant.is_planet_at(new_x, new_y):
+                print("Movement blocked by an planet!")
                 return  # Don't move if there's a star in the way
 
             # Update position if no star is blocking
@@ -776,7 +989,7 @@ class Player(pygame.sprite.Sprite):
 
 #### end player class
 
-class Phasor_blast(pygame.sprite.Sprite):
+class Phaser_blast(pygame.sprite.Sprite):
     def __init__(self, origin_x, origin_y, enemy_x, enemy_y, color):
         super().__init__()
 
@@ -791,13 +1004,19 @@ class Phasor_blast(pygame.sprite.Sprite):
 
     def update(self):
         ...
-        """Update the phasor blast's state."""
+        """Update the phaser blast's state."""
         current_time = pygame.time.get_ticks()
         if current_time - self.start_time > self.timer:
             self.kill()  # Remove the sprite after 1 second
 
+    def out_of_bounds(self):
+        """Check if the torpedo is out of quadrant bounds."""
+
+        # return not (0 <= self.grid_x < GRID_SIZE and 0 <= self.grid_y < GRID_SIZE)
+        return False
+
     def draw(self, screen):
-        """Draw the phasor blast."""
+        """Draw the phaser blast."""
         pygame.draw.line(SCREEN,self.color,(self.origin_x, self.origin_y),(self.enemy_x, self.enemy_y), 2)
 
 class Torpedo(pygame.sprite.Sprite):
@@ -831,6 +1050,9 @@ class Torpedo(pygame.sprite.Sprite):
         self.last_update = pygame.time.get_ticks()  # Track the last time the torpedo moved
         self.travel_delay = 100  # Milliseconds delay between moves
 
+        self.near_targets = []
+        self.miss_chance = CHANCE_OF_TORPEDO_MISS
+
     def calculate_direction_vector(self):
         """Calculate normalized direction vector based on rise and run."""
         magnitude = math.sqrt(self.rise ** 2 + self.run ** 2)
@@ -854,7 +1076,9 @@ class Torpedo(pygame.sprite.Sprite):
     def out_of_bounds(self):
         """Check if the torpedo is out of quadrant bounds."""
 
-        return not (0 <= self.grid_x < GRID_SIZE and 0 <= self.grid_y < GRID_SIZE)
+        return not (GRID_ORIGIN_X <= self.rect.center[0] < (GRID_ORIGIN_X + GRID_SIZE*SQUARE_SIZE) and GRID_ORIGIN_Y <= self.rect.center[1] < GRID_ORIGIN_Y + GRID_SIZE*SQUARE_SIZE)
+
+        # return not (0 <= self.grid_x < GRID_SIZE-1 and 0 <= self.grid_y < GRID_SIZE-1)
 
     def check_collision(self, enemies):
         """Check if the torpedo collides with any enemies."""
@@ -866,8 +1090,18 @@ class Torpedo(pygame.sprite.Sprite):
 
         for enemy in player.current_quadrant.enemies:
             if rounded_x == enemy.grid_x and rounded_y == enemy.grid_y:
-                print(f"{self.name} * Hit Enemy {enemy.name} at ({enemy.grid_x}, {enemy.grid_y})! *")
-                return enemy
+
+                if enemy not in self.near_targets:
+                    self.near_targets.append(enemy)
+
+                    if random.random() > self.miss_chance:
+
+                        print(f"{self.name} * Hit Enemy {enemy.name} at ({enemy.grid_x}, {enemy.grid_y})! *")
+                        return enemy
+
+                    else:
+                        print(f"{self.name} * Missed Enemy {enemy.name} at ({enemy.grid_x}, {enemy.grid_y})! * @ {self.miss_chance}")
+
         return None
 
     def update(self):
@@ -901,10 +1135,17 @@ class Torpedo(pygame.sprite.Sprite):
             self.explode(self.grid_x, self.grid_y, max_size=SQUARE_SIZE //3 , start_size=1, growth_rate=2)
             return
 
+        if player.current_quadrant.is_planet_at(rounded_x, rounded_y):
+            print(f"{self.name} collided with a planet @ {rounded_x}, {rounded_y}.")
+            self.explode(self.grid_x, self.grid_y, max_size=SQUARE_SIZE //3 , start_size=1, growth_rate=2)
+            return
+
         # Check for collisions with enemies
         hit_enemy = self.check_collision(player.current_quadrant.enemies)
         if hit_enemy:
             self.handle_enemy_hit(hit_enemy)
+
+        self.miss_chance += MISS_CHANCE_INCREASE_PER
 
     def explode(self, x, y, max_size, start_size, growth_rate):
         """Handle explosion visuals and sound."""
@@ -937,7 +1178,7 @@ class Torpedo(pygame.sprite.Sprite):
         if enemy.hull <= 0:
             print(f"     {enemy.name} Destroyed!")
             enemy.die()
-            player.current_quadrant.enemies.remove(enemy)
+            # player.current_quadrant.enemies.remove(enemy)
             self.explode(enemy.grid_x, enemy.grid_y, max_size=SQUARE_SIZE, start_size=5, growth_rate=2)
             EXPLOSION_CHANNEL.play(SHIP_DEATH_SOUND)
 
@@ -958,6 +1199,9 @@ class Explosion(pygame.sprite.Sprite):
     def __init__(self, position, max_size, start_size, growth_rate):
         super().__init__()
         self.position = position  # Center of the explosion
+
+        self.grid_x = self.position[0]
+        self.grid_y = self.position[1]
         self.growth_rate = growth_rate
         self.max_size = max_size
         self.current_size = start_size
@@ -969,6 +1213,11 @@ class Explosion(pygame.sprite.Sprite):
         self.color = random.choice([WHITE, RED, ORANGE, YELLOW])
         if self.current_size > self.max_size:
             self.kill()  # Remove the sprite once it reaches the max size
+
+    def out_of_bounds(self):
+        """Check if the torpedo is out of quadrant bounds."""
+
+        return False
 
     def draw(self, screen):
         # Draw the explosion as a growing circle
@@ -1034,6 +1283,8 @@ class Enemy(pygame.sprite.Sprite):
             self.image = pygame.transform.flip(self.orig_image, False, True)
 
     def die(self):
+        if self in player.current_quadrant.enemies:
+            player.current_quadrant.enemies.remove(self)
         self.kill()
 
     def enemy_fire_phaser(self, player):
@@ -1065,20 +1316,34 @@ class Enemy(pygame.sprite.Sprite):
             if damage > 0 and player.hull > 0:
                 player.hull -= damage
 
+                
+
             # Deduct energy cost for firing
             self.energy -= 100
 
             # Visual/feedback (e.g., phaser beam)
             print(f"{self.name} fires phaser at the player! Distance: {distance}, Damage: {damage}")
-            # Create and add a phasor blast
+            # Create and add a phaser blast
 
-            phasor_blast = Phasor_blast(self.grid_x, self.grid_y, player.grid_x, player.grid_y, GREEN)
-            projectile_group.add(phasor_blast)
+            phaser_blast = Phaser_blast(self.grid_x, self.grid_y, player.grid_x, player.grid_y, GREEN)
+            projectile_group.add(phaser_blast)
             WEAPON_CHANNEL.play(ENEMY_PHASER_SOUND)
 
 
             # Check if the player has been destroyed
-            if player.hull <= 0:
+            if player.hull < (MAX_HULL * .25):
+                
+                print("CRITICAL DAMAGE!")
+                if player.hull <= 0:
+                    player.hull = 0
+                    # CHANCE OF CREW GETTING KILLED:
+                    # if random.random() < .5:
+                    #     player.crew -= random.randint(1,5)
+                    #     if player.crew <= 0:
+                    #         player.crew = 0
+
+
+            if player.crew <= 0:
                 print("The player's ship has been destroyed!")
 
 
@@ -1173,6 +1438,10 @@ class Enemy(pygame.sprite.Sprite):
         if player.current_quadrant.is_base_at(x, y):
             return False
 
+        # Check if the position contains a starbase
+        if player.current_quadrant.is_planet_at(x, y):
+            return False
+
         # Otherwise, the position is valid
         return True
 
@@ -1197,6 +1466,79 @@ class Enemy(pygame.sprite.Sprite):
         return adjacent_positions
 
 
+class Planet:
+    def __init__(self, grid_x, grid_y, quadrant_x, quadrant_y, name=None, planet_type=None):
+        """
+        Initialize a Planet object.
+
+        :param grid_x: The x-coordinate of the planet within the grid (sector).
+        :param grid_y: The y-coordinate of the planet within the grid (sector).
+        :param quadrant_x: The x-coordinate of the quadrant the planet is in.
+        :param quadrant_y: The y-coordinate of the quadrant the planet is in.
+        :param name: Optional name of the planet (randomly generated if not provided).
+        :param planet_type: Optional type of the planet (e.g., Earth-like, gas giant).
+        """
+        self.grid_x = grid_x
+        self.grid_y = grid_y
+        self.quadrant_x = quadrant_x
+        self.quadrant_y = quadrant_y
+        self.name = name
+        self.size = random.randint(1, 10)  # Size (e.g., 1 = small, 10 = massive)
+        self.planet_type = planet_type
+        self.resources = self.generate_resources()
+        self.inhabited = random.choice([True, False])  # Randomly determine if the planet is inhabited
+
+        random_planet = random.choice(ALL_PLANET_IMAGES)
+
+        self.image = pygame.image.load(random_planet["file"]).convert_alpha()
+        planet_image_size_factor = self.size / 10
+        planet_image_size_factor = max(0.6, min(1, planet_image_size_factor)) 
+        self.image = pygame.transform.scale(self.image, (SQUARE_SIZE*planet_image_size_factor, SQUARE_SIZE*planet_image_size_factor))  # Scale to grid square size 
+
+        self.shields = 0 
+        self.hull = 0 
+
+
+    def generate_name(self, sector_planets, sector_planet_index):
+        """
+        Generate a name for the planet by appending a letter (A, B, C, etc.) 
+        based on its index in the sector.
+        """
+        base_name = get_quadrant_name(self.quadrant_x, self.quadrant_y)
+        if len(sector_planets) > 1:
+            suffix = chr(97 + sector_planet_index)  # Convert index to ASCII (A=65, B=66, etc.)
+            return f"{base_name} - {suffix}"
+        else:
+            return f"{base_name}"
+
+
+
+
+    def generate_planet_type(self):
+        """Randomly assign a type to the planet."""
+        planet_types = ["Earth-like", "Gas Giant", "Frozen", "Desert", "Volcanic", "Oceanic"]
+        return random.choice(planet_types)
+
+    def generate_resources(self):
+        """Randomly determine resource levels for the planet."""
+        return {
+            "minerals": random.randint(0, 100),
+            "water": random.randint(0, 100),
+            "energy": random.randint(0, 100)
+        }
+
+    def __str__(self):
+        """String representation of the planet for debugging and display."""
+        inhabited_status = "Inhabited" if self.inhabited else "Uninhabited"
+        return (
+            f"Planet {self.name} ({self.planet_type})\n"
+            f"Location: Quadrant ({self.quadrant_x}, {self.quadrant_y}) | Grid ({self.grid_x}, {self.grid_y})\n"
+            f"Size: {self.size}\n"
+            f"Resources: {self.resources}\n"
+            f"Status: {inhabited_status}"
+        )
+
+
 class Sector:
     def __init__(self, quadrant_x, quadrant_y):
         self.quadrant_x = quadrant_x
@@ -1204,6 +1546,7 @@ class Sector:
         self.stars = []  # List to store star positions (each star is a tuple of (x, y))
         self.bases = []  # List to store base positions (each base is a tuple of (x, y))
         self.enemies = []
+        self.planets = []
 
         self.visited = False
         self.last_star_count = 0
@@ -1212,44 +1555,79 @@ class Sector:
 
 
 
-    def generate(self, player_x, player_y):
-        """Generate stars and possibly a base for the sector."""
-        num_stars = random.randint(2, 7)  # Random number of stars between 2 and 5
-        
-        # Randomly place stars in grid squares (ensure no duplicates or player position)
-        while len(self.stars) < num_stars:
-            star_x = random.randint(0, GRID_SIZE - 1)
-            star_y = random.randint(0, GRID_SIZE - 1)
-            star_pos = (star_x, star_y)
-            
-            # Ensure the star position isn't the same as the player's position
-            if star_pos not in self.stars and star_pos != (player_x, player_y):
-                self.stars.append(star_pos)  # Add star to the list if it's not a duplicate or the player's position
-        
-        # 10% chance of having a base in the sector
-        if random.random() < 0.1:
-            placing = True 
-            while placing:
-                grid_x, grid_y = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
-                base_pos = (grid_x, grid_y)
-                base = Base(grid_x, grid_y)
-                if base_pos not in self.stars and base_pos not in self.bases and base_pos != (player_x, player_y):
-                    self.bases.append(base)  # Add base to the list
-                    placing = False
+    def generate(self, player, player_x, player_y):
+        """Generate stars, planets, bases, and enemies for the sector."""
 
-        # 10% chance of having an enemy in the sector
+        # Create a weighted list for the number of stars
+        weighted_numbers = [1, 7, 8, 9] + [2, 3, 4, 5, 6] * 4
+        num_stars = random.choice(weighted_numbers)
+
+        # Randomly place stars or planets in grid squares (ensure no duplicates or player position)
+        while len(self.stars) + len(self.planets) < num_stars:
+            obj_x = random.randint(0, GRID_SIZE - 1)
+            obj_y = random.randint(0, GRID_SIZE - 1)
+            obj_pos = (obj_x, obj_y)
+
+            # Ensure the position isn't the same as the player's position or a duplicate in either stars or planets
+            if obj_pos != (player_x, player_y) and obj_pos not in self.stars:
+                
+                # Check for any planet in self.planets that shares the same position
+                planet_exists = any(planet.grid_x == obj_x and planet.grid_y == obj_y for planet in self.planets)
+                base_exists = any(base.grid_x == obj_x and base.grid_y == obj_y for base in self.bases)
+
+                if not planet_exists and not base_exists :
+                    # Random chance to create a planet (10% chance, adjust as needed)
+                    if random.random() < 0.1:  # 10% chance for a planet
+                        new_planet = Planet(obj_x, obj_y, self.quadrant_x, self.quadrant_y)
+                        self.planets.append(new_planet)
+                    # else:
+                        # new_star = Star(obj_x, obj_y, self.quadrant_x, self.quadrant_y)
+                        # self.stars.append(new_star)
+                    else:  # Otherwise, add a star
+                        self.stars.append(obj_pos)
+
+        for i, planet in enumerate(self.planets):
+            planet.name = planet.generate_name(self.planets,i)
+
+        # Ensure there's a maximum number of bases across all sectors
+        starbase_count_ttl = sum(sector.count_bases() for sector in player.all_sectors)
+        if starbase_count_ttl < MAX_NUM_OF_BASES:
+            if random.random() < 0.1:  # 10% chance of having a base in the sector
+                placing = True
+                while placing:
+                    grid_x, grid_y = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
+                    base_pos = (grid_x, grid_y)
+                    base = Base(grid_x, grid_y)
+                    if base_pos not in self.stars and base_pos not in self.bases and base_pos != (player_x, player_y):
+                        # Check for any planet in self.planets that shares the same position
+                        planet_exists = any(planet.grid_x == obj_x and planet.grid_y == obj_y for planet in self.planets)
+                        base_exists = any(base.grid_x == obj_x and base.grid_y == obj_y for base in self.bases)
+
+                        if not planet_exists and not base_exists :
+                            self.bases.append(base)  # Add base to the list
+                            placing = False
+
+        # 25% chance of having enemies in the sector
         if random.random() < 0.25:
-            num_of_enemies = random.randint(1,4)
-            for i in range(num_of_enemies):
-                placing = True 
+            num_of_enemies = random.randint(1, 4)
+            for _ in range(num_of_enemies):
+                placing = True
                 while placing:
                     grid_x, grid_y = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
                     enemy_pos = (grid_x, grid_y)
-                    if enemy_pos not in self.stars and enemy_pos not in self.bases and star_pos != (player_x, player_y):
-                        if not self.is_enemy_at(grid_x, grid_y):
-                            new_enemy = Enemy(grid_x, grid_y)
-                            self.enemies.append(new_enemy)  # Add base to the list
-                            placing = False
+                    if enemy_pos not in self.stars and enemy_pos not in self.bases and enemy_pos != (player_x, player_y):
+                        # Check for any planet in self.planets that shares the same position
+                         # Check for any planet in self.planets that shares the same position
+                        planet_exists = any(planet.grid_x == obj_x and planet.grid_y == obj_y for planet in self.planets)
+                        base_exists = any(base.grid_x == obj_x and base.grid_y == obj_y for base in self.bases)
+
+                        if not planet_exists and not base_exists :
+
+                            if not self.is_enemy_at(grid_x, grid_y):
+                                new_enemy = Enemy(grid_x, grid_y)
+                                self.enemies.append(new_enemy)  # Add enemy to the list
+                                placing = False
+
     
     def count_bases(self):
         """Count the number of bases in the sector."""
@@ -1281,6 +1659,14 @@ class Sector:
                 return enemy
         return False
 
+    def is_planet_at(self, x, y):
+
+        for planet in self.planets:  # Assuming `self.planets` is a list of Planet objects
+            if planet.grid_x == x and planet.grid_y == y:
+                return planet  # Return the Planet object
+        return None  # Return None if no planet is found
+
+
     def is_empty(self, x, y):
         """Check if the sector at (x, y) is empty (no enemy)."""
         for enemy in self.enemies:
@@ -1299,68 +1685,73 @@ def draw_sector_map():
     # Draw the grid background
     SCREEN.blit(GRID_BACKGROUND, (GRID_ORIGIN_X, GRID_ORIGIN_Y))
 
-    # condition_set_to = "GREEN"
-    # Draw grid lines
-
     player.inDockingRange = None
+    player.inOrbitRange = None
 
     for row in range(GRID_SIZE):
         for col in range(GRID_SIZE):
             this_square_x = GRID_ORIGIN_X + (col * SQUARE_SIZE)
             this_square_y = GRID_ORIGIN_Y + (row * SQUARE_SIZE)
             rect = pygame.Rect(this_square_x, this_square_y, SQUARE_SIZE, SQUARE_SIZE)
-            # pygame.draw.rect(SCREEN, DARK_GREEN, rect, 1)
 
+            # Check and update player condition
             if player.current_quadrant.count_enemies() >= 1:
                 player.condition = "RED"
 
-            else:
-                ...
-                # player.condition = "GREEN"
-
-            
-            if player.current_quadrant.is_star_at(col, row): # Check if there is a star in this square
-                # Draw a star in this square (could be a small circle or image)
+            # Check for stars
+            if player.current_quadrant.is_star_at(col, row):
                 pygame.draw.circle(SCREEN, YELLOW, rect.center, 20)  # Yellow star
-                pygame.draw.rect(SCREEN, YELLOW, rect, 1)  # yellow grid line
+                pygame.draw.rect(SCREEN, YELLOW, rect, 1)  # Yellow grid line
 
+            # Check for planets
+            elif player.current_quadrant.is_planet_at(col, row):  # Add planet drawing logic
+                planet = player.current_quadrant.is_planet_at(col, row)
+                planet_screen_x = GRID_ORIGIN_X + (col * SQUARE_SIZE)
+                planet_screen_y = GRID_ORIGIN_Y + (row * SQUARE_SIZE)
+                offset_x = (SQUARE_SIZE - planet.image.get_width()) // 2
+                offset_y = (SQUARE_SIZE - planet.image.get_height()) // 2
 
+                # Draw the planet's image
+                SCREEN.blit(planet.image, (planet_screen_x + offset_x, planet_screen_y + offset_y))
+                pygame.draw.rect(SCREEN, DARK_GREEN, rect, 1)  # Dark green grid line for planets
 
-            elif player.current_quadrant.is_base_at(col, row):
-
-                
-                base_screen_x = GRID_ORIGIN_X + (col * SQUARE_SIZE)
-                base_screen_y = GRID_ORIGIN_Y + (row * SQUARE_SIZE)
-                # Calculate offsets to center the image
-                offset_x = (SQUARE_SIZE - BASE_IMAGE.get_width()) // 2
-                offset_y = (SQUARE_SIZE - BASE_IMAGE.get_height()) // 2
-
-                # Blit the image, applying the offsets
-                SCREEN.blit(BASE_IMAGE, (base_screen_x + offset_x, base_screen_y + offset_y))
-                pygame.draw.rect(SCREEN, BLUE, rect, 1)  # Blue grid line
-
-                # Calculate distance
-                distance = abs(math.sqrt((player.grid_x - col) ** 2 + (player.grid_y- row) ** 2))
-                # print(distance)
-                
-                if (distance <=1):
+                # Check orbit range
+                distance = abs(math.sqrt((player.grid_x - col) ** 2 + (player.grid_y - row) ** 2))
+                if distance <= 1:
                     if player.current_quadrant.count_enemies() <= 0:
                         player.condition = "GREEN"
                         player.update_position()
+                        player.inOrbitRange = (col, row)
 
+                        if player.inOrbit:
+                            player.condition = "GREEN"
+                    else:
+                        player.condition = "RED"
+
+            # Check for bases
+            elif player.current_quadrant.is_base_at(col, row):
+                base_screen_x = GRID_ORIGIN_X + (col * SQUARE_SIZE)
+                base_screen_y = GRID_ORIGIN_Y + (row * SQUARE_SIZE)
+                offset_x = (SQUARE_SIZE - BASE_IMAGE.get_width()) // 2
+                offset_y = (SQUARE_SIZE - BASE_IMAGE.get_height()) // 2
+
+                SCREEN.blit(BASE_IMAGE, (base_screen_x + offset_x, base_screen_y + offset_y))
+                pygame.draw.rect(SCREEN, BLUE, rect, 1)  # Blue grid line for bases
+
+                # Check docking range
+                distance = abs(math.sqrt((player.grid_x - col) ** 2 + (player.grid_y - row) ** 2))
+                if distance <= 1:
+                    if player.current_quadrant.count_enemies() <= 0:
+                        player.condition = "GREEN"
+                        player.update_position()
                         player.inDockingRange = (col, row)
 
                         if player.docked:
                             player.condition = "BLUE"
-
                     else:
                         player.condition = "RED"
-                else:
-                    player.condition = "GREEN"
 
-
-
-
+            # Check for enemies
             elif player.current_quadrant.is_enemy_at(col, row):
                 this_enemy = player.current_quadrant.is_enemy_at(col, row)
                 enemy_screen_x = GRID_ORIGIN_X + (col * SQUARE_SIZE)
@@ -1370,80 +1761,61 @@ def draw_sector_map():
 
                 SCREEN.blit(this_enemy.image, (enemy_screen_x + offset_x, enemy_screen_y + offset_y))
 
-                if this_enemy.shields >=1 :
-                    # Calculate the center of the square for the circle
+                if this_enemy.shields >= 1:
                     center_x = enemy_screen_x + SQUARE_SIZE // 2
                     center_y = enemy_screen_y + SQUARE_SIZE // 2
                     radius = SQUARE_SIZE // 2  # Radius is half the square size
+                    pygame.draw.circle(SCREEN, BLUE, (center_x, center_y), radius, 2)  # Blue shield
 
-                    # Draw a blue circle around the enemy
-                    pygame.draw.circle(SCREEN, BLUE, (center_x, center_y), radius, 2)  # 2 is the thickness of the circle's border
+                pygame.draw.rect(SCREEN, RED, rect, 1)  # Red grid line for enemies
 
-                pygame.draw.rect(SCREEN, RED, rect, 1)  # RED grid line
-
+            # Default grid square
             else:
                 pygame.draw.rect(SCREEN, DARK_GREEN, rect, 1)  # Regular grid line
 
-
+            # Highlight the player position
             if col == player.grid_x and row == player.grid_y:
                 if player.condition == "BLUE":
-                    pygame.draw.rect(SCREEN, BLUE, rect,1)  # Highlight in Green (or another color)
+                    pygame.draw.rect(SCREEN, BLUE, rect, 1)  # Highlight in blue
                 else:
-                    pygame.draw.rect(SCREEN, GREEN, rect,1)  # Highlight in Green (or another color)
-                
-                if player.shields >=1 :
-                    if player.shields_on:
-                        player_screen_x = GRID_ORIGIN_X + (col * SQUARE_SIZE)
-                        player_screen_y = GRID_ORIGIN_Y + (row * SQUARE_SIZE)
-                        # Calculate the center of the square for the circle
-                        center_x = player_screen_x + SQUARE_SIZE // 2
-                        center_y = player_screen_y + SQUARE_SIZE // 2
-                        
+                    pygame.draw.rect(SCREEN, GREEN, rect, 1)  # Highlight in green
 
-                        # Draw a blue circle around the player
-                        thickness = int(player.shield_level//10 ) -1
+                # Draw player's shields
+                if player.shields >= 1 and player.shields_on:
+                    player_screen_x = GRID_ORIGIN_X + (col * SQUARE_SIZE)
+                    player_screen_y = GRID_ORIGIN_Y + (row * SQUARE_SIZE)
+                    center_x = player_screen_x + SQUARE_SIZE // 2
+                    center_y = player_screen_y + SQUARE_SIZE // 2
+                    thickness = max(int(player.shield_level // 10) - 1, 1)
+                    radius = SQUARE_SIZE // 2 + player.shield_level / 25
+                    pygame.draw.circle(SCREEN, BLUE, (center_x, center_y), radius, thickness)
 
-                        radius = SQUARE_SIZE // 2 + player.shield_level/25  # Radius is half the square size
-                        pygame.draw.circle(SCREEN, BLUE, (center_x, center_y), radius, thickness)  # 2 is the thickness of the circle's border
-
-
-            else:
-                ...
-
-                # pygame.draw.rect(SCREEN, DARK_GREEN, rect, 1)  # Regular grid line
-
-            # # Draw grid number for each square (optional)
-            # number_text = FONT24.render("000", True, GREEN)
-            # number_rect = number_text.get_rect(center=(this_square_x + SQUARE_SIZE // 2, this_square_y + SQUARE_SIZE // 2))
-            # SCREEN.blit(number_text, number_rect)
-
+            # Draw sector borders based on condition
             if player.condition == "RED":
-                pygame.draw.rect(SCREEN, RED, (GRID_ORIGIN_X-1, GRID_ORIGIN_Y-1, GRID_SIZE * SQUARE_SIZE + 2 , GRID_SIZE * SQUARE_SIZE + 2), 2)  # RED grid line
+                pygame.draw.rect(SCREEN, RED, (GRID_ORIGIN_X - 1, GRID_ORIGIN_Y - 1, GRID_SIZE * SQUARE_SIZE + 2, GRID_SIZE * SQUARE_SIZE + 2), 2)
             elif player.condition == "BLUE":
-                pygame.draw.rect(SCREEN, BLUE, (GRID_ORIGIN_X-1, GRID_ORIGIN_Y-1, GRID_SIZE * SQUARE_SIZE + 2, GRID_SIZE * SQUARE_SIZE + 2), 2)  # BLUE grid line
+                pygame.draw.rect(SCREEN, BLUE, (GRID_ORIGIN_X - 1, GRID_ORIGIN_Y - 1, GRID_SIZE * SQUARE_SIZE + 2, GRID_SIZE * SQUARE_SIZE + 2), 2)
             elif player.condition == "GREEN":
-                pygame.draw.rect(SCREEN, GREEN, (GRID_ORIGIN_X-1, GRID_ORIGIN_Y-1, GRID_SIZE * SQUARE_SIZE + 2, GRID_SIZE * SQUARE_SIZE + 2), 2)  # GREEN grid line
+                pygame.draw.rect(SCREEN, GREEN, (GRID_ORIGIN_X - 1, GRID_ORIGIN_Y - 1, GRID_SIZE * SQUARE_SIZE + 2, GRID_SIZE * SQUARE_SIZE + 2), 2)
 
-            # Draw column headers (centered above the grid)
+            # Draw column headers
             if row == 0:  # Only draw column headers on the first row
                 column_text = FONT24.render(str(col + 1), True, GREEN)
                 column_text_rect = column_text.get_rect(
                     center=(this_square_x + SQUARE_SIZE // 2, GRID_ORIGIN_Y - SQUARE_SIZE // 2)
                 )
-                SCREEN.blit(column_text, column_text_rect)  
+                SCREEN.blit(column_text, column_text_rect)
 
-
-        # Draw row headers (centered to the left of the grid)
+        # Draw row headers
         row_text = FONT24.render(str(row + 1), True, GREEN)
         row_text_rect = row_text.get_rect(
             center=(GRID_ORIGIN_X - SQUARE_SIZE // 2, this_square_y + SQUARE_SIZE // 2)
         )
         SCREEN.blit(row_text, row_text_rect)
 
-
-
     # Draw the player
-    SCREEN.blit(player.image, player.rect)
+    if not player.is_dead:
+        SCREEN.blit(player.image, player.rect)
 
 
 
@@ -1473,14 +1845,14 @@ def draw_reports():
     draw_report_line("TORPEDOS:", str(player.torpedo_qty), report_pos_y)
     report_pos_y += FONT24.get_height()
 
-    draw_report_line("ENERGY:", str(player.energy), report_pos_y)
+    draw_report_line("ENERGY:", str(round(player.energy)), report_pos_y)
     report_pos_y += FONT24.get_height()
 
     draw_report_line("------------------------------", f"-------------", report_pos_y)
     report_pos_y += FONT24.get_height()
 
 
-    draw_report_line("SHIELD ENERGY:", str(player.shield_energy), report_pos_y)
+    draw_report_line("SHIELD ENERGY:", str(round(player.shield_energy)), report_pos_y)
     report_pos_y += FONT24.get_height()
 
     draw_report_line("SHIELDS:", str(round(player.shields)), report_pos_y)
@@ -1493,11 +1865,15 @@ def draw_reports():
     report_pos_y += FONT24.get_height()
 
 
-    draw_report_line("HULL STRENGTH:", str(player.hull), report_pos_y)
+    draw_report_line("HULL STRENGTH:", str(round(player.hull)), report_pos_y)
+    report_pos_y += FONT24.get_height()
+
+    draw_report_line("CREW:", f"{player.crew}", report_pos_y)
     report_pos_y += FONT24.get_height()
 
     draw_report_line("------------------------------", f"-------------", report_pos_y)
     report_pos_y += FONT24.get_height()
+
 
     
     draw_report_line("ENEMIES:", str(player.num_enemies), report_pos_y)
@@ -1533,18 +1909,34 @@ def draw_report_line(title, value, y_pos):
             title = "SHIELDS DOWN:"
 
         if player.current_quadrant.enemies:
-            if (not player.shields_on) or (player.shields < 250): #(player.shield_level <= 25)
-               value_color = YELLOW 
-               title_color = YELLOW
-               if not flash_on: value_color = BLACK
+            if (not player.shields_on) or (player.shields < 500): #(player.shield_level <= 25)
+                if not flash_on: value_color = BLACK
+                value_color = YELLOW 
+                title_color = YELLOW
+               
 
-            if player.shields < 50:
+            if player.shields < 100:
                 value_color = RED 
                 title_color = RED
-                if not flash_on: value_color = BLACK
+                
 
             if player.shields <= 0:
                 title = "SHIELDS DOWN:"
+        else: # no enemies
+            if player.shields_on:
+                if (player.shields < 500): #(player.shield_level <= 25)
+                    if not flash_on: value_color = BLACK
+                    value_color = YELLOW 
+                    title_color = YELLOW
+                    
+                if player.shields < 100:
+                    value_color = RED 
+                    title_color = RED
+                    
+                if player.shields <= 0:
+                    title = "SHIELDS DOWN:"
+
+
 
     elif  title == "SHIELD LEVEL:":
         if player.shields_on:
@@ -1644,7 +2036,19 @@ def draw_alert_info(screen):
             sector_title = FONT24.render(f"IN DOCKING RANGE WITH STARBASE", True, BLUE)
             screen.blit(sector_title, (sector_info_x, sector_info_y))
 
-        
+    elif player.inOrbitRange is not None:
+
+        if player.inOrbit:
+
+            sector_title = FONT24.render(f"QUADRANT : {player.quadrant_x+1} , {player.quadrant_y+1}   ( {get_quadrant_name(player.quadrant_x,player.quadrant_y)} )", True, GREEN)
+            screen.blit(sector_title, (sector_info_x, sector_info_y-FONT24.get_height()))
+            sector_title = FONT24.render(f"IN PLANETARY ORBIT", True, BLUE)
+            screen.blit(sector_title, (sector_info_x, sector_info_y))
+        else:
+            sector_title = FONT24.render(f"QUADRANT : {player.quadrant_x+1} , {player.quadrant_y+1}   ( {get_quadrant_name(player.quadrant_x,player.quadrant_y)} )", True, GREEN)
+            screen.blit(sector_title, (sector_info_x, sector_info_y-FONT24.get_height()))
+            sector_title = FONT24.render(f"IN ORBITAL RANGE WITH PLANET", True, BLUE)
+            screen.blit(sector_title, (sector_info_x, sector_info_y))
     else:
         ...
         sector_title = FONT24.render(f"QUADRANT : {player.quadrant_x+1} , {player.quadrant_y+1}   ( {get_quadrant_name(player.quadrant_x,player.quadrant_y)} )", True, GREEN)
@@ -1826,7 +2230,7 @@ def prompt_shields_transfer(screen):
         # Display the current input
         input_surface = FONT24.render(input_text, True, WHITE)
         screen.blit(input_surface, (PROMPT_ORIGIN_X + prompt_surface.get_width() + 10, PROMPT_ORIGIN_Y))
-
+        draw_cursor(PROMPT_ORIGIN_X + prompt_surface.get_width() + input_surface.get_width(),PROMPT_ORIGIN_Y)
         draw_all_to_screen()
         pygame.display.flip()
         clock.tick(FPS)
@@ -1897,6 +2301,7 @@ def prompt_phaser_power(screen):
         input_surface = FONT24.render(input_text, True, WHITE)
         screen.blit(input_surface, (PROMPT_ORIGIN_X + prompt_surface.get_width() + 10 , PROMPT_ORIGIN_Y))
 
+        draw_cursor(PROMPT_ORIGIN_X + prompt_surface.get_width() + input_surface.get_width(),PROMPT_ORIGIN_Y)
 
         draw_all_to_screen()
         pygame.display.flip()
@@ -1922,6 +2327,26 @@ def prompt_phaser_power(screen):
                     if len(input_text) < 4 and event.unicode.isdigit():  # Limit input length
                         input_text += event.unicode
 
+def draw_cursor(x,y):
+    global color_index, color_change_timer
+
+    # Update the color every `color_change_interval` milliseconds
+    if pygame.time.get_ticks() - color_change_timer > COLOR_CHANGE_INTERVAL:
+        color_index = (color_index + 1) % len(SHADE_COLOR_CYCLE)  # Cycle to the next color
+        color_change_timer = pygame.time.get_ticks()
+
+    # Get the current color from the list
+    current_color = SHADE_COLOR_CYCLE[color_index]
+
+    # Calculate the rectangle's position
+    rect_x = x + 10  # Add some padding to the right of the text
+    rect_y = y - 5
+    rect_width = FONT24.get_height()  # Rectangle width equals the height of the text
+    rect_height = FONT24.get_height() + 5 
+
+    # Draw the rectangle with the current color
+    pygame.draw.rect(SCREEN, current_color, (rect_x, rect_y, rect_width, rect_height))
+
 def prompt_warp_factor(screen):
     """Display a prompt for the player to enter warp factor."""
     input_text = ""
@@ -1935,6 +2360,10 @@ def prompt_warp_factor(screen):
         input_surface = FONT24.render(input_text, True, WHITE)
         screen.blit(input_surface, (PROMPT_ORIGIN_X + prompt_surface.get_width() + 10 , PROMPT_ORIGIN_Y))
 
+        draw_cursor(PROMPT_ORIGIN_X + prompt_surface.get_width() + input_surface.get_width(),PROMPT_ORIGIN_Y)
+
+
+
 
         draw_all_to_screen()
         pygame.display.flip()
@@ -1945,7 +2374,7 @@ def prompt_warp_factor(screen):
                 pygame.quit()
                 exit()
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:  # Confirm input
+                if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:  # Confirm input
                     if input_text.isdigit():
                         factor = int(input_text)
                         if 0 <= factor <= 8:
@@ -1971,6 +2400,9 @@ def prompt_direction(screen,prompt_text):
         # Display the prompt
         prompt_surface = FONT24.render(prompt_text, True, WHITE)
         SCREEN.blit(prompt_surface, (PROMPT_ORIGIN_X, PROMPT_ORIGIN_Y))
+
+        draw_cursor(PROMPT_ORIGIN_X + prompt_surface.get_width(),PROMPT_ORIGIN_Y)
+
 
         draw_all_to_screen()
         pygame.display.flip()
@@ -2027,6 +2459,8 @@ def prompt_sector_target(screen, prompt_text):
         # Display the prompt and current input
         prompt_surface = FONT24.render(f"{prompt_text} {input_text}", True, WHITE)
         SCREEN.blit(prompt_surface, (PROMPT_ORIGIN_X, PROMPT_ORIGIN_Y))
+        draw_cursor(PROMPT_ORIGIN_X + prompt_surface.get_width(),PROMPT_ORIGIN_Y)
+
 
         draw_all_to_screen()
         pygame.display.flip()
@@ -2117,15 +2551,15 @@ def display_enemy_readout(screen):
 
     # Header text
     header_text = FONT24.render("SHORT RANGE SCAN:", True, GREEN)
-    screen.blit(header_text, (SCAN_ORIGIN_X + 90, SCAN_ORIGIN_Y))
+    screen.blit(header_text, (SCAN_ORIGIN_X + 120, SCAN_ORIGIN_Y))
     y_offset += FONT24.get_height()
-    separator_text = FONT24.render("------------------------------------------------------------------------------", True, GREEN)
+    separator_text = FONT24.render("-----------------------------------------------------------------------------------------", True, GREEN)
     screen.blit(separator_text, (SCAN_ORIGIN_X - 10, SCAN_ORIGIN_Y + y_offset))
 
     # Column headers
     y_offset += FONT24.get_height()
-    column_headers = [("Name", SCAN_NAME_X, "left"), ("Direction", SCAN_DIRECTION_X, "center"), ("Distance", SCAN_DISTANCE_X, "center"), 
-                      ("Shield", SCAN_SHIELD_X, "center"), ("Hull", SCAN_HULL_X, "center")]
+    column_headers = [("NAME", SCAN_NAME_X, "left"), ("DIRECTION", SCAN_DIRECTION_X, "center"), ("DISTANCE", SCAN_DISTANCE_X, "center"), 
+                      ("SHIELD", SCAN_SHIELD_X, "center"), ("HULL", SCAN_HULL_X, "center")]
 
     for header, x_offset, alignment in column_headers:
         header_text = FONT24.render(header, True, GREEN)
@@ -2141,11 +2575,12 @@ def display_enemy_readout(screen):
 
     # Add a separator line below the column headers
     y_offset += FONT24.get_height()
-    separator_text = FONT24.render("------------------------------------------------------------------------------", True, GREEN)
+    separator_text = FONT24.render("-----------------------------------------------------------------------------------------", True, GREEN)
     screen.blit(separator_text, (SCAN_ORIGIN_X - 10, SCAN_ORIGIN_Y + y_offset))
 
     # Create a list of enemies with their distances and directions
     targets_with_distances = []
+
     for enemy in player.current_quadrant.enemies:
         if enemy.grid_x == player.grid_x and enemy.grid_y == player.grid_y:
             continue  # Skip if the enemy is on the same square as the player
@@ -2166,88 +2601,70 @@ def display_enemy_readout(screen):
         )
         targets_with_distances.append((starbase, direction, distance))
 
+    # for planet in player.current_quadrant.planets:
+    #     # starbase_grid_x, starbase_grid_y = base[0], base[1]
+    #     direction, distance = calculate_direction_and_distance(
+    #         player.grid_x, player.grid_y, planet.grid_x, planet.grid_y
+    #     )
+    #     targets_with_distances.append((planet, direction, distance))
+
     # Sort enemies by distance
     targets_with_distances.sort(key=lambda x: x[2])  # Sort by distance (x[2])
+
+    for planet in player.current_quadrant.planets:
+        # starbase_grid_x, starbase_grid_y = base[0], base[1]
+        direction, distance = calculate_direction_and_distance(
+            player.grid_x, player.grid_y, planet.grid_x, planet.grid_y
+        )
+        targets_with_distances.append((planet, direction, distance))
 
     # Display each enemy
     y_offset += FONT24.get_height()
     for target, direction, distance in targets_with_distances:
-
+        this_font = FONT24
         text_color = GREEN
         if type(target) == Enemy: text_color = RED
+        elif type(target) == Planet: 
+            text_color = GREEN
+            this_font = FONT22
         elif  type(target) == Base: 
             text_color = BLUE
             if player.docked: 
                 direction = "DOCKED"
                 distance  = "DOCKED"
+        
 
         # Render enemy name
-        target_name_text = FONT24.render(target.name, True, text_color)
-        screen.blit(target_name_text, (SCAN_ORIGIN_X + SCAN_NAME_X, SCAN_ORIGIN_Y + y_offset))
+        target_name_text = this_font.render(target.name, True, text_color)
+        screen.blit(target_name_text, (SCAN_ORIGIN_X + SCAN_NAME_X -10, SCAN_ORIGIN_Y + y_offset))
 
         # Render enemy direction
-        direction_text = FONT24.render(direction, True, text_color)
+        direction_text = this_font.render(direction, True, text_color)
         direction_x = SCAN_ORIGIN_X + SCAN_DIRECTION_X + (100 - direction_text.get_width()) // 2
         screen.blit(direction_text, (direction_x, SCAN_ORIGIN_Y + y_offset))
 
         # Render enemy distance
-        distance_text = FONT24.render(f"{distance}", True, text_color)
+        distance_text = this_font.render(f"{distance}", True, text_color)
         distance_x = SCAN_ORIGIN_X + SCAN_DISTANCE_X + (100 - distance_text.get_width()) // 2
         screen.blit(distance_text, (distance_x, SCAN_ORIGIN_Y + y_offset))
 
         # Render enemy shield
 
-        shield_text = FONT24.render(f"{target.shields}", True, text_color)
+        shield_text = this_font.render(f"{target.shields}", True, text_color)
         if target.shields <= 0:
-            shield_text = FONT24.render(f"--", True, GREY)
+            shield_text = this_font.render(f"--", True, GREY)
 
         shield_x = SCAN_ORIGIN_X + SCAN_SHIELD_X + (100 - shield_text.get_width()) // 2
         screen.blit(shield_text, (shield_x, SCAN_ORIGIN_Y + y_offset))
 
         # Render enemy hull
-        hull_text = FONT24.render(f"{target.hull}", True, text_color)
+        hull_text = this_font.render(f"{target.hull}", True, text_color)
         if target.hull <= 0:
-            hull_text = FONT24.render(f"--", True, GREY)
+            hull_text = this_font.render(f"--", True, GREY)
         hull_x = SCAN_ORIGIN_X + SCAN_HULL_X + (100 - hull_text.get_width()) // 2
         screen.blit(hull_text, (hull_x, SCAN_ORIGIN_Y + y_offset))
 
         y_offset += FONT24.get_height()  # Increment y-offset for the next enemy
-
-    # Add starbase information if present
-    # if player.current_quadrant.has_starbase:
-    # for base in player.current_quadrant.bases:
-    #     starbase_grid_x, starbase_grid_y = base[0], base[1]
-    #     direction, distance = calculate_direction_and_distance(
-    #         player.grid_x, player.grid_y, starbase_grid_x, starbase_grid_y
-    #     )
-
-    #     # Render starbase name
-    #     starbase_name_text = FONT24.render("STARBASE", True, BLUE)
-    #     screen.blit(starbase_name_text, (SCAN_ORIGIN_X + SCAN_NAME_X, SCAN_ORIGIN_Y + y_offset))
-
-    #     # Render starbase direction
-    #     if player.docked: direction = "DOCKED"
-    #     direction_text = FONT24.render(direction, True, BLUE)
-    #     direction_x = SCAN_ORIGIN_X + SCAN_DIRECTION_X + (100 - direction_text.get_width()) // 2
-    #     screen.blit(direction_text, (direction_x, SCAN_ORIGIN_Y + y_offset))
-
-    #     # Render starbase distance
-    #     if player.docked: distance = "DOCKED"
-    #     distance_text = FONT24.render(f"{distance}", True, BLUE)
-    #     distance_x = SCAN_ORIGIN_X + SCAN_DISTANCE_X + (100 - distance_text.get_width()) // 2
-    #     screen.blit(distance_text, (distance_x, SCAN_ORIGIN_Y + y_offset))
-
-    #     # Render starbase shield
-    #     shield_text = FONT24.render(f"--", True, GREY)
-    #     shield_x = SCAN_ORIGIN_X + SCAN_SHIELD_X + (100 - shield_text.get_width()) // 2
-    #     screen.blit(shield_text, (shield_x, SCAN_ORIGIN_Y + y_offset))
-
-    #     # Render starbase hull
-    #     hull_text = FONT24.render(f"--", True, GREY)
-    #     hull_x = SCAN_ORIGIN_X + SCAN_HULL_X + (100 - hull_text.get_width()) // 2
-    #     screen.blit(hull_text, (hull_x, SCAN_ORIGIN_Y + y_offset))
-
-    #     y_offset += FONT24.get_height()  # Increment y-offset 
 
 
 
@@ -2264,6 +2681,8 @@ def prompt_numeric_input(prompt_text, min_value, max_value, compass=False):
 
         if compass:
             draw_compass()
+
+        draw_cursor(PROMPT_ORIGIN_X + prompt_surface.get_width(),PROMPT_ORIGIN_Y)
         
         draw_all_to_screen()
         pygame.display.flip()
@@ -2319,17 +2738,91 @@ def prompt_numeric_input(prompt_text, min_value, max_value, compass=False):
         # Wait a bit for smooth input response
         pygame.time.wait(100)
 
+def display_computer_active_text():
+    global color_index, color_change_timer
 
+    if players_turn == True:
 
+        # # Update the color every `color_change_interval` milliseconds
+        # if pygame.time.get_ticks() - color_change_timer > COLOR_CHANGE_INTERVAL:
+        #     color_index = (color_index + 1) % len(SHADE_COLOR_CYCLE)  # Cycle to the next color
+        #     color_change_timer = pygame.time.get_ticks()
+
+        # Get the current color from the list
+        current_color = SHADE_COLOR_CYCLE[color_index]
+
+        # Render the text with the current color
+        computer_active_text = "COMPUTER ACTIVE AND AWAITING COMMAND:"
+        computer_active_title = FONT24.render(computer_active_text, True, current_color)
+
+        # Calculate the center position relative to the sector map
+        map_center_x = GRID_ORIGIN_X + (GRID_SIZE * SQUARE_SIZE) // 2
+        text_width = computer_active_title.get_width()
+        centered_x = map_center_x - (text_width // 2)
+
+        # Display the text centered X-wise
+        SCREEN.blit(computer_active_title, (centered_x, PROMPT_ORIGIN_Y))
+
+        # Calculate the rectangle's position
+        draw_cursor(centered_x + text_width,PROMPT_ORIGIN_Y)
+        # rect_x = centered_x + text_width + 10  # Add some padding to the right of the text
+        # rect_y = PROMPT_ORIGIN_Y - 5
+        # rect_width = computer_active_title.get_height()  # Rectangle width equals the height of the text
+        # rect_height = computer_active_title.get_height() + 5 
+
+        # # Draw the rectangle with the current color
+        # pygame.draw.rect(SCREEN, current_color, (rect_x, rect_y, rect_width, rect_height))
+
+def draw_captain(overlay_images, key_pressed=False):
+    # Define the size of the box
+    box_width = 55 * CAPTAIN_BOX_SCALE
+    box_height = 30 * CAPTAIN_BOX_SCALE
+    
+    # Calculate the position for the box (right of center at the bottom)
+    box_x = QUADRANT_ORIGIN_X - box_width - 50  # 10 pixels offset from the right edge
+    box_y = SCREEN_HEIGHT - box_height - 25  # 10 pixels offset from the bottom edge
+
+    # Draw the grey outline for the box
+    pygame.draw.rect(SCREEN, GREY, (box_x-2, box_y-2, box_width+4, box_height+4), 2)  # 2 is the outline thickness
+
+    BASE_IMAGE = pygame.transform.scale(CRUISER_CAPTAIN_000, (box_width, box_height))  # Scale to box size
+
+    # Draw the 'CRUISER_CAPTAIN_000' background image inside the box
+    SCREEN.blit(BASE_IMAGE, (box_x, box_y))
+
+    if key_pressed:
+        # Select a few images randomly from the additional list
+        num_images_to_draw = random.randint(1, 3)  # Change the range to adjust how many images to pick
+        selected_images = random.sample(CRUISER_CAPTAIN_ADDITIONALS, num_images_to_draw)
+
+        # Store the selected images with their offsets
+        overlay_images.clear()  # Clear any previous overlay images
+        for image, x_offset, y_offset in selected_images:
+            overlay_images.append((image, x_offset, y_offset))
+
+    # Draw the stored overlay images (even if key_pressed is False)
+    for image, x_offset, y_offset in overlay_images:
+        overlay_image = pygame.transform.scale(image, (image.get_width()*CAPTAIN_BOX_SCALE, image.get_height()*CAPTAIN_BOX_SCALE))  # Scale to box size
+        x_offset, y_offset = abs(x_offset), abs(y_offset)
+        SCREEN.blit(overlay_image, (box_x + x_offset*CAPTAIN_BOX_SCALE, box_y + y_offset*CAPTAIN_BOX_SCALE))
 
 
 def draw_all_to_screen(): # for use when in a prompt.
-
+    global projectile_group
     draw_alert_info(SCREEN)
+    
     draw_sector_map()
+    
+    projectile_group.update() 
+    for projectile in projectile_group:
+        if not projectile.out_of_bounds():
+            projectile.draw(SCREEN)
+
     draw_reports()
     display_enemy_readout(SCREEN)
     draw_quadrant_map(player)
+
+    draw_captain(overlay_images,key_pressed)
 
 
 
@@ -2340,12 +2833,18 @@ def main():
     global player
     global projectile_group
     global current_index
+    global players_turn
+    global overlay_images
+    global key_pressed
 
     player = Player()
     projectile_group = pygame.sprite.Group() 
 
     current_index = SHIELD_LEVELS.index(player.shield_level)  # Find the current level's index
     players_turn = True
+
+    # List to store overlay images and their offsets
+    overlay_images = []
 
     while running:
 
@@ -2356,6 +2855,16 @@ def main():
         # for sector in player.all_sectors:
         #     enemy_count_ttl += sector.count_enemies()
         # player.num_enemies = enemy_count_ttl
+
+
+        delta_time = clock.tick(60)  # Get the time since the last frame (in ms)
+        # Simulate hull and crew check
+        player.check_hull_and_crew(delta_time)
+
+        # Example condition to stop the game loop (modify as needed)
+        if player.crew <= 0:
+            ...
+            # running = False
 
         
         key_pressed = False
@@ -2397,21 +2906,21 @@ def main():
                         key_pressed = True
 
                     elif event.key == pygame.K_p:
-                        player.fire_phasers()
+                        if not player.docked: player.fire_phasers()
                         key_pressed = True
 
                     elif event.key == pygame.K_t:
-                        player.fire_torpedo()
+                        if not player.docked: player.fire_torpedo()
                         key_pressed = True
 
                     elif event.key == pygame.K_w:
-                        player.activate_warp()
+                        if not player.docked: player.activate_warp()
                         key_pressed = False
 
                     elif event.key == pygame.K_s:
                         key_pressed = False
                         # player.shields_toggle()
-                        prompt_shields_transfer(SCREEN)
+                        if not player.docked: prompt_shields_transfer(SCREEN)
 
 
 
@@ -2422,38 +2931,46 @@ def main():
                         if player.inDockingRange is not None:
                             player.toggle_dock(player.inDockingRange)
 
+                    elif event.key == pygame.K_o:
+                        key_pressed =  True
+                        if player.inOrbitRange is not None:
+                            player.toggle_orbit(player.inOrbitRange)
+
                     elif event.key == pygame.K_KP_PLUS:
+
                         key_pressed = False
-                        # Increase the shield level
-                        player.shields_on = True
-                        if current_index < len(SHIELD_LEVELS) - 1:
-                            current_index += 1
-                            player.shield_level = SHIELD_LEVELS[current_index]
-                            print(f"Shield level increased to {player.shield_level}%")
-                            if player.shields_on:
-                                player.shields = (player.shield_energy / 100) * player.shield_level
-                                WEAPON_CHANNEL.play(SHIELD_UP)
-                            else:
-                                player.shields =0
-                            player.energy -= RAISE_SHIELD_PER
+                        if not player.docked: 
+                            # Increase the shield level
+                            player.shields_on = True
+                            if current_index < len(SHIELD_LEVELS) - 1:
+                                current_index += 1
+                                player.shield_level = SHIELD_LEVELS[current_index]
+                                print(f"Shield level increased to {player.shield_level}%")
+                                if player.shields_on:
+                                    player.shields = (player.shield_energy / 100) * player.shield_level
+                                    WEAPON_CHANNEL.play(SHIELD_UP)
+                                else:
+                                    player.shields =0
+                                player.energy -= RAISE_SHIELD_PER
 
 
                     elif event.key == pygame.K_KP_MINUS:
                         key_pressed = False
-                        # Decrease the shield level
-                        if current_index > 0:
-                            current_index -= 1
-                            player.shield_level = SHIELD_LEVELS[current_index]
-                            print(f"Shield level decreased to {player.shield_level}%")
-                            if player.shields_on:
-                                WEAPON_CHANNEL.play(SHIELD_DOWN)
-                                if player.shield_level <= 0:
-                                    player.shields_on = False
-                                    player.shields = 0
+                        if not player.docked: 
+                            # Decrease the shield level
+                            if current_index > 0:
+                                current_index -= 1
+                                player.shield_level = SHIELD_LEVELS[current_index]
+                                print(f"Shield level decreased to {player.shield_level}%")
+                                if player.shields_on:
+                                    WEAPON_CHANNEL.play(SHIELD_DOWN)
+                                    if player.shield_level <= 0:
+                                        player.shields_on = False
+                                        player.shields = 0
+                                    else:
+                                        player.shields = (player.shield_energy / 100) * player.shield_level
                                 else:
-                                    player.shields = (player.shield_energy / 100) * player.shield_level
-                            else:
-                                player.shields = 0
+                                    player.shields = 0
 
 
 
@@ -2479,6 +2996,8 @@ def main():
         ### DRAW EVERYTHING #################################################################################################
         SCREEN.fill(BLACK)
 
+        display_computer_active_text()
+
         draw_alert_info(SCREEN)
 
         draw_sector_map()
@@ -2488,13 +3007,35 @@ def main():
 
         projectile_group.update() 
         for projectile in projectile_group:
-            projectile.draw(SCREEN)
+            if not projectile.out_of_bounds():
+                projectile.draw(SCREEN)
 
         draw_reports()
 
         display_enemy_readout(SCREEN)
 
         draw_quadrant_map(player)
+
+        draw_captain(overlay_images,key_pressed)
+
+        while player.is_dead:
+
+            delta_time = clock.tick(60)  # Get the time since the last frame (in ms)
+            # Simulate hull and crew check
+            player.check_hull_and_crew(delta_time)
+
+            # Handle events
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                    player.is_dead = False
+
+            SCREEN.fill(BLACK)
+            draw_all_to_screen()
+            ### FLIP AND TICK ###
+            pygame.display.flip()
+            # Cap the frame rate
+            clock.tick(FPS)
 
         
 
