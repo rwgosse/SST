@@ -29,6 +29,8 @@ GRID_ORIGIN_X, GRID_ORIGIN_Y = SQUARE_SIZE, SQUARE_SIZE*2
 REPORT_TITLE_MARGIN = 300
 REPORT_STATUS_MARGIN = 150
 
+GRID_END_X = GRID_ORIGIN_X + (SQUARE_SIZE * GRID_SIZE)
+
 # Constants for the quadrant map
 QUADRANT_SIZE = 8  # 8x8 grid
 QUADRANT_MARGIN = 20  # Margin from the right and bottom of the screen
@@ -50,6 +52,18 @@ PROMPT_ORIGIN_X = 80
 PROMPT_ORIGIN_Y = SCREEN_HEIGHT - 80
 PROMPT_AREA = (PROMPT_ORIGIN_X, SCREEN_HEIGHT - 90, 300, 200)  # Bottom-left corner
 COMPASS_ORIGIN_X = SCAN_ORIGIN_X
+
+CAPTAIN_BOX_SCALE = 3
+CAPTAIN_BOX_WIDTH  = 55 * CAPTAIN_BOX_SCALE
+CAPTAIN_BOX_HEIGHT = 30 * CAPTAIN_BOX_SCALE
+CAPTAIN_BOX_ORIGIN_X = GRID_END_X + CAPTAIN_BOX_WIDTH
+
+CREW_ORIGIN_X = GRID_ORIGIN_X + 10
+CREW_ORIGIN_Y = GRID_ORIGIN_Y + 10
+CREW_DETAIL_START_X = CREW_ORIGIN_X + 20
+CREW_DETAIL_START_Y  = CREW_ORIGIN_Y + 20
+CREW_BOX_SIZE_WIDTH = (SQUARE_SIZE * GRID_SIZE) - 40
+
 # Colors (RGB values)
 WHITE = (255, 255, 255)
 OFF_WHITE = (200, 200, 200)
@@ -63,10 +77,14 @@ RED = (255, 0, 0)
 DARK_RED = (50, 0, 0)
 ORANGE = (255, 165, 0)
 YELLOW = (255, 255, 0)
+GOLD       = (255,215,0)
+DARK_YELLOW = (60, 60, 0)
 GREEN = (0, 255, 0)
 DARK_GREEN =(0,50,0)
 BLUE = (0, 0, 255)
+LIGHT_BLUE = (35,35,255)
 DARK_BLUE = (0, 0, 128)
+PURPLE     = (139,0,139) # Mageneta technically speaking
 
 # Define the shades from WHITE to BLACK
 SHADE_COLOR_CYCLE = [WHITE, WHITE, OFF_WHITE, OFF_WHITE,LIGHT_GREY, GREY, MIDDLE_GREY, DARK_GREY, NEAR_BLACK, DARK_GREY, MIDDLE_GREY,GREY, LIGHT_GREY,OFF_WHITE,OFF_WHITE,WHITE,WHITE]
@@ -79,14 +97,36 @@ FONT22 = pygame.font.Font(None, 22)
 FONT24 = pygame.font.Font(None, 24)
 
 
-MAX_NUM_OF_BASES = 5
 
+
+### GAME CONSTANTS ### 
+
+
+DEPARTMENT_LIST = ["Command", "Pilot", "Communications", "Engineering", "Tactical", "Security", "Intelligence", "Bio-Science", "Physical-Science", "Medical"]
+RANK_LIST = ["Crewman", "Able Crewman", "Chief", "Ensign", "2nd Lt.", "1st Lt.", "Lt. Cmdr", "Commander", "Captain"]
+CREWNAMELIST = ["Belt","Buck","Bukowski","Adama", "Carter","Chu","Chin","Decker","Ender","Graeme","Hendryx","Halleck","Hawkins","Hodgkinds","Jeevo","Jenkins","Kirk","Kilgore","Pike","Pirx","Rigby", "Riker", "Solo","Spiff","Trent","Tuf", "Troy", "VanRijn", "Vance", "Wu", "Witherspoon", "Yam"]
+CREWNAMELIST.extend(["Aero","Aether","Allen","Anderson","Armstrong","Asimov","Barnhardt","Beam","Bester","Blish","Blixseth","Brackett","Bradbury","Burroughs","Campbell","Carlyle","Chandler","Clarke","Clement","Clive","Comet","Corbett","Crockett","Dawnstar","De Camp","Del Rey","Dent","Doyle","Earhart","Felsmark","Fifer","Finnegan","Grail","Grim","Hammond","Harlin","Hathway","Hawks","Heinlein","Herrmann","Holmes","Howard","Jones","Kazantsev","Lanning","Lansing","Leiber","Lester","Levitan","Merril","Meteor","Miller","Moore","Morningstar","O’Malley","Oliver","Pohl","Powers","Quartermain","Quinn","Raymond","Reith","Rhodan","Rocklynne","Savage","Scheer","Shin","Slayton","Smith","Sprague","Starfury","Starke","Starskimmer","Van Vogt","Vega","West","Wilhelm","Wyndham","Zelas"])
+CREWNAMELIST.extend(["Aguerra","Cairn ","Crusher","Delis ","Flashman","Haggard","Hart","Hornwrack","Jax","Kandel","Lee","McIntyre","Silenus","Vinge","Wae","Wergard","Zodiac"])
+ANDROID_NAMES = ["QT","TC","Alpha","Beta","Scrap","Ratchet","Sparkle","Igioid","Max","Copper","Ano","C3","R4","Mechi","Ayc","Bult","Otis","Spark"]
+PKUNK_NAMES = ["Weeny", "Wikki", "Beeki", "Birdi", "Braky", "Girdy", "Awkky", "Chrupp", "Awwky","Brakky","Buzzard","Crow","Ernie","Fuzzy","Hooter","Jay","Polly","Poppy","Raven","Screech","Tweety","Twitta","WudStok","Yompin"]
+
+ALLIED_SPECIES_LIST = ["Human","Human","Human","Human","Android","Pkunk"] # add on later... more allied species
+
+
+POSITIVE_CHARACTER_TRAITS = ["accepts authority","accepts what’s given","affectionate","aspiring","candid","caring","accepts change","cheerful","considerate","cooperative","courageous","courteous","decisive","devoted","determined","does what is necessary","perseveres","enthusiastic","expansive","faith in life","faith in oneself","faith in others","flexible","forgiving","focused","freedom given to others","friendly","frugal","generous","goodwill","grateful","hard-working","honest","humble","interested","involved","jealous","kind","mature","modest","open-minded","optimistic","perfects","persistent","positive","practical","punctual","realistic","reliable","respectful","responsibility; takes-","responsible","responsive","self-confident","self-directed","self-disciplined","self-esteem","self-giving","self-reliant","selfless","sensitive","serious","sincere","social independence","sympathetic","systematic","takes others point of view","thoughtful towards others","trusting","unpretentious","unselfish","willing does","work-oriented","achieved; has-","adventurous","substance-free","alert","aware of opportunities","calm","clean","clear goals","clear thoughts","completes","comprehends","conscious","conscious of one’s weaknesses","constructive","content-oriented","creative","delegates","deliberative","detail-oriented","develops mental capabilities","directed","disciplined","dynamic","educated","education exceed previous generation","education greater than present level of achievement","education greater than previous generation","efficient","effort taking","effort achieves results","energetic","enterprising","entrepreneurial","envisions the unseen","experienced (in area)","fatigue-free","goal-oriented","good","graceful","has enough time","health robust","high goals","higher social interests","idea-driven","imaginative","improves self","in rapidly expanding field of work","initiates (has initiative)","innovative","insightful","intelligent","knowledgeable","knowledgeable in a particular area","leads others","lives from the depths of life","lucky; things go your way","money circulated for improvement","motivated","nerves strong","objective","observant","organized","patient","personable","physical stamina","polite","previous success in family life","previous success in school","previous success in work","productive interactions with others","professional (acts)","professional qualification achieved","regular","relationship with other(s) positive","resourceful","results-oriented","risk-taker","sees the whole picture","seeks improvement","spiritual","stamina","strong; physically-","strong; psychologically-","stress-free","(has had) supportive family or friends","tough","trustworthy","wealthy","wealth in present generation","well-behaved","work is in harmony with personal life","capacity to judge others","careful","communication skills","(can) exercise authority","delegation skills","leadership skills","listening skills","management skills","motivating skills","negotiating skills","organization skills","planning skills","problem-solving skills","public speaking skills","reconciling problems","skilled","speaking skills","teamwork skills","technical work skills","time management skills","verbal skills","writing skills","affectionate family upbringing","high mental abilities in family","parents attained high social status","parents motivated","parents rose & accomplished","(inheritance) physical attributes are fine","(had) previous success (in school","prosperity in family upbringing","psychological health and well-being","prosperity in surrounding society","supportive social environment","loyal","ambitious","thoughtful","right","endures","thrifty","tolerant","sustaining","willingness","has direction","strong constitution","mannered","inner connection","relaxed","graceful with objects","conflicts at higher level skills","talented exceptionally in particular area","gave direction","works hard",]
+NEGATIVE_CHARACTER_TRAITS = ["rebellious","ignores, rejects what’s given","distant, cold, aloof","self-satisfied, unmotivated","closed, guarded, secretive","uncaring, unfeeling, callous","rejects change","cheerless, gloomy, sour, grumpy","inconsiderate, thoughtless","uncooperative, unhelpful, combative","cowering, fearful","rude, impolite","indecisive","uncommitted, uncaring, hostile","indecisive, unsure","does what is convenient","relents, gives up","unenthusiastic, apathetic, indifferent","kept back, tight, constricting","life can’t be trusted","lack of faith in self","others can’t be relied on","inflexible, rigid, unbending, stubborn","unforgiving, resentful, spiteful","unfocused, scattered","authoritarian, controlling","unfriendly, distant, aloof, hostile","wasteful, spendthrift","stingy, miserly, selfish","ill-will, malice, hatred","ungrateful, unappreciative","lazy","dishonest, deceiving, lying","arrogant, conceited, ego-centric","indifferent, uncaring","complacent, indifferent","jealous, envious, covetous","unkind, uncaring, cruel, mean","immature","vain","narrow, close, small-minded, intolerant","pessimistic","allows imperfection","flagging, fleeting, unsustaining","negative","impractical, not viable","late, not on time","unrealist, impractical","unreliable, undependable","disrespectful, rude, impolite","blames others","unresponsive, unreceptive","lack of self confidence, insecure","directed by externals","undisciplined, unrestrained, indulgent","self-esteem, confidence – low","self-centered","dependent","selfish","Insensitive, indifferent","frivolous, silly, trivial","insincere, dishonest","social approval required","unsympathetic, unfeeling","unsystematic, disorganized, disorderly, random","insists on own view","thoughtless, inconsiderate, callous","suspicious, mistrusting","pretentious, affected, ostentatious","unwilling, reluctant, recalcitrant","convenience first","hasn’t achieve","conventional","substance-abuse (alcohol, drug)","dull","ignorant of opportunities","excitable, nervous","dirty, unkempt","lack of, jumbled goals; directionless","muddled thoughts, confused","leaves hanging, doesn’t complete","doesn’t comprehend","unconscious","unconscious of one’s strengths","destructive, complaining","outer, surface, form-oriented","uncreative","tries to do everything","reckless","scrimps on details","leaves mental capacities as is","directionless, unfocused","dissipating","passive","uneducated","education not exceed previous generation","education less than present level of achievement","education less than previous generation","inefficient","lack of effort","effort wasted","listless","enterprising, not","entrepreneurial, not","visionless","inexperienced (in area)","tired, fatigued","unfocused, addled, scattered","goalless, directionless","evil","clumsy","never has enough time","poor health, weak constitution","low, no goals","lower, no social interests","ideas don’t motivate to act","unimaginative","stays the same","in static or declining field","lacks initiative","conservative","lacks insight, blind to, ignorant of","stupid","ignorant, uniformed","no knowledge in a particular area","submits, yields to others","lives on the surface of life, superficial","unlucky","money hoarded for security","unmotivated","nerves weak","subjective, biased","blind to, oblivious to","disorganized","impatient, expectant","non-engaging, distant, cold","lack of stamina","impolite, ill mannered, rude","previous failure in family life","previous failure in school","previous failure in work","chit-chatting","amateurish (acts)","no professional qualification","late","irregular, erratic","relationship with other(s) negative","unresourceful, helpless","irresponsible","does for doing’s sake, being merely occupied","averse to risk","seeing only parts of the picture","self-satisfied","lacks any spiritual, inner connection","weak; physically-","weak; psychologically-","stressed, tense","(has had) indifferent, uncaring family or friends","weak, soft","untrustworthy","impoverished","poverty in present generation","ill behaved","work is in conflict with personal life","unable to judge others","careless, clumsy","communication skills, lack of","cannot exercise authority","delegation skills, lack of","leadership skills, lack of","listening skills, lack of","management skills, lack of","motivating skills, lack of","negotiating skills, lack of","organization skills, lacks","planning skills, lack of","problem-solving skills, lack of","public speaking skills, lack of","reconciling problems, conflicts at higher level skills, lack of","unskilled","not skilled, talented exceptionally in particular area","speaking skills, lack of","teamwork skills, lack of","technical work skills, lack of","time management skills, lack of","verbal skills, lack of","writing skills, lack of","indifferent, hostile family upbringing","poor mental abilities in family","parents have low social status","parents demotivated, gave no direction","parents remained in same position","(inheritance) physical attributes are poor","(had) previous failure (in school, work, family life)","poverty in family upbringing","psychological problems","poverty in surrounding society","indifferent social environment",]
+
+EXTRA_SKILL_LIST = ["Animal Handling","Architecture","Artist","Bioengineering","Code-Breaking","Computer Hacking","Computer-Programming","Diplomacy","Electronics Operation","Expert Skill","Explosives","Forgery","Gambling","Hidden Lore","History","Intelligence Analysis","Interrogation","Law","Leadership","Logistics","Mathematics","Meditation","Melee-Combat","Merchant","Mimicry","Observation","Photography","Politics","Ranged-Combat","Smuggling","Spacer","Stealth","Survival","Traps","Weird Science"]
+
+
+MAX_NUM_OF_BASES = 5
 MAX_ENERGY = 3000
 BASE_RELOAD_ENERGY = 3000
 WARP_ENERGY_PER = 100
 RAISE_SHIELD_PER = 50
 SHIELD_LEVELS = [0, 25, 50, 75, 100]
-MAX_CREW = 100
+MAX_CREW = 18
+MIN_CREW_FOR_STARSHIP = 5
 MAX_HULL = 1000
 MAX_SHIELDS = 2000
 BASE_RELOAD_SHIELD = 2000
@@ -104,7 +144,6 @@ HULL_REPAIR_TICK = 5
 
 STARDATE_PER_REPAIR_TICK = 0.015
 
-CAPTAIN_BOX_SCALE = 3
 
 
 ### END CONSTANTS ###########################################################################################################
@@ -118,7 +157,8 @@ EARTHING_SHIP = pygame.image.load("earthling.png").convert_alpha()
 BASE_IMAGE = pygame.image.load("base.png").convert_alpha()
 BASE_IMAGE = pygame.transform.scale(BASE_IMAGE, (SQUARE_SIZE*.75, SQUARE_SIZE*.75))  # Scale to grid square size 
 
-ENEMY_SHIP = pygame.image.load("avenger.png").convert_alpha() 
+AVENGER_SHIP = pygame.image.load("avenger.png").convert_alpha() 
+INTRUDER_SHIP = pygame.image.load("intruder.png").convert_alpha() 
 
 GRID_BACKGROUND = pygame.image.load("starfield.png").convert_alpha()
 GRID_BACKGROUND = pygame.transform.scale(GRID_BACKGROUND, (GRID_SIZE * SQUARE_SIZE, GRID_SIZE * SQUARE_SIZE)) 
@@ -187,21 +227,50 @@ ALL_PLANET_IMAGES = [
 ]
 
 CRUISER_CAPTAIN_000 = pygame.image.load("cruiser-cap-000.png").convert_alpha() 
+CRUISER_CAPTAIN_000 = pygame.transform.scale(CRUISER_CAPTAIN_000, (CAPTAIN_BOX_WIDTH, CAPTAIN_BOX_HEIGHT))  # Scale to box size
 
-CRUISER_CAPTAIN_001 = pygame.image.load("cruiser-cap-001.png").convert_alpha() 
+CRUISER_CAPTAIN_001 = pygame.image.load("cruiser-cap-001.png").convert_alpha()
+CRUISER_CAPTAIN_001 = pygame.transform.scale(CRUISER_CAPTAIN_001, (CRUISER_CAPTAIN_001.get_width()*CAPTAIN_BOX_SCALE, CRUISER_CAPTAIN_001.get_height()*CAPTAIN_BOX_SCALE))  # Scale to box size 
+
 CRUISER_CAPTAIN_002 = pygame.image.load("cruiser-cap-002.png").convert_alpha()  
+CRUISER_CAPTAIN_002 = pygame.transform.scale(CRUISER_CAPTAIN_002, (CRUISER_CAPTAIN_002.get_width()*CAPTAIN_BOX_SCALE, CRUISER_CAPTAIN_002.get_height()*CAPTAIN_BOX_SCALE))  # Scale to box size 
+
 CRUISER_CAPTAIN_003 = pygame.image.load("cruiser-cap-003.png").convert_alpha() 
+CRUISER_CAPTAIN_003 = pygame.transform.scale(CRUISER_CAPTAIN_003, (CRUISER_CAPTAIN_003.get_width()*CAPTAIN_BOX_SCALE, CRUISER_CAPTAIN_003.get_height()*CAPTAIN_BOX_SCALE))  # Scale to box size 
+
 CRUISER_CAPTAIN_004 = pygame.image.load("cruiser-cap-004.png").convert_alpha() 
+CRUISER_CAPTAIN_004 = pygame.transform.scale(CRUISER_CAPTAIN_004, (CRUISER_CAPTAIN_004.get_width()*CAPTAIN_BOX_SCALE, CRUISER_CAPTAIN_004.get_height()*CAPTAIN_BOX_SCALE))  # Scale to box size 
+
 CRUISER_CAPTAIN_005 = pygame.image.load("cruiser-cap-005.png").convert_alpha() 
+CRUISER_CAPTAIN_005 = pygame.transform.scale(CRUISER_CAPTAIN_005, (CRUISER_CAPTAIN_005.get_width()*CAPTAIN_BOX_SCALE, CRUISER_CAPTAIN_005.get_height()*CAPTAIN_BOX_SCALE))  # Scale to box size 
+
 CRUISER_CAPTAIN_006 = pygame.image.load("cruiser-cap-006.png").convert_alpha() 
+CRUISER_CAPTAIN_006 = pygame.transform.scale(CRUISER_CAPTAIN_006, (CRUISER_CAPTAIN_006.get_width()*CAPTAIN_BOX_SCALE, CRUISER_CAPTAIN_006.get_height()*CAPTAIN_BOX_SCALE))  # Scale to box size 
+
 CRUISER_CAPTAIN_007 = pygame.image.load("cruiser-cap-007.png").convert_alpha() 
+CRUISER_CAPTAIN_007 = pygame.transform.scale(CRUISER_CAPTAIN_007, (CRUISER_CAPTAIN_007.get_width()*CAPTAIN_BOX_SCALE, CRUISER_CAPTAIN_007.get_height()*CAPTAIN_BOX_SCALE))  # Scale to box size 
+
 CRUISER_CAPTAIN_008 = pygame.image.load("cruiser-cap-008.png").convert_alpha() 
+CRUISER_CAPTAIN_008 = pygame.transform.scale(CRUISER_CAPTAIN_008, (CRUISER_CAPTAIN_008.get_width()*CAPTAIN_BOX_SCALE, CRUISER_CAPTAIN_008.get_height()*CAPTAIN_BOX_SCALE))  # Scale to box size 
+
 CRUISER_CAPTAIN_009 = pygame.image.load("cruiser-cap-009.png").convert_alpha() 
+CRUISER_CAPTAIN_009 = pygame.transform.scale(CRUISER_CAPTAIN_009, (CRUISER_CAPTAIN_009.get_width()*CAPTAIN_BOX_SCALE, CRUISER_CAPTAIN_009.get_height()*CAPTAIN_BOX_SCALE))  # Scale to box size 
+
 CRUISER_CAPTAIN_010 = pygame.image.load("cruiser-cap-010.png").convert_alpha() 
+CRUISER_CAPTAIN_010 = pygame.transform.scale(CRUISER_CAPTAIN_010, (CRUISER_CAPTAIN_010.get_width()*CAPTAIN_BOX_SCALE, CRUISER_CAPTAIN_010.get_height()*CAPTAIN_BOX_SCALE))  # Scale to box size 
+
 CRUISER_CAPTAIN_011 = pygame.image.load("cruiser-cap-011.png").convert_alpha() 
+CRUISER_CAPTAIN_011 = pygame.transform.scale(CRUISER_CAPTAIN_011, (CRUISER_CAPTAIN_011.get_width()*CAPTAIN_BOX_SCALE, CRUISER_CAPTAIN_011.get_height()*CAPTAIN_BOX_SCALE))  # Scale to box size 
+
 CRUISER_CAPTAIN_012 = pygame.image.load("cruiser-cap-012.png").convert_alpha() 
+CRUISER_CAPTAIN_012 = pygame.transform.scale(CRUISER_CAPTAIN_012, (CRUISER_CAPTAIN_012.get_width()*CAPTAIN_BOX_SCALE, CRUISER_CAPTAIN_012.get_height()*CAPTAIN_BOX_SCALE))  # Scale to box size 
+
 CRUISER_CAPTAIN_013 = pygame.image.load("cruiser-cap-013.png").convert_alpha() 
+CRUISER_CAPTAIN_013 = pygame.transform.scale(CRUISER_CAPTAIN_013, (CRUISER_CAPTAIN_013.get_width()*CAPTAIN_BOX_SCALE, CRUISER_CAPTAIN_013.get_height()*CAPTAIN_BOX_SCALE))  # Scale to box size 
+
 CRUISER_CAPTAIN_014 = pygame.image.load("cruiser-cap-014.png").convert_alpha() 
+CRUISER_CAPTAIN_014 = pygame.transform.scale(CRUISER_CAPTAIN_013, (CRUISER_CAPTAIN_014.get_width()*CAPTAIN_BOX_SCALE, CRUISER_CAPTAIN_014.get_height()*CAPTAIN_BOX_SCALE))  # Scale to box size 
+
 
 CRUISER_CAPTAIN_ADDITIONALS = [
     (CRUISER_CAPTAIN_001, -33, -9),
@@ -302,7 +371,14 @@ class Player(pygame.sprite.Sprite):
 
         self.hull = MAX_HULL
 
-        self.crew = MAX_CREW
+        # self.crew = MAX_CREW
+
+        self.soulsOnBoard        = pygame.sprite.Group()
+        self.crewMax             = MAX_CREW # Crew Pods Added. You now have increased crew capacity, but to gain more crew you must recruit at a colony.
+        self.lastCasualties      = 0 
+        while (len(self.soulsOnBoard) < self.crewMax):
+            self.addCrewman(random.choice(ALLIED_SPECIES_LIST))
+        self.crewQty             = len(self.soulsOnBoard)
 
         self.num_enemies = 0
         self.num_starbases = 0
@@ -343,6 +419,7 @@ class Player(pygame.sprite.Sprite):
                 
                 # Store the sector in the visited_sectors dictionary
                 self.all_sectors.append(sector)
+        print("Galaxy creation complete")
 
     def enter_sector(self, quadrant_x, quadrant_y):
         """Ensure player enters the sector without starting on a star or base."""
@@ -412,23 +489,86 @@ class Player(pygame.sprite.Sprite):
         
         print(f"Warning: No valid adjacent square found for the player. Staying at ({self.grid_x}, {self.grid_y}).")
 
+
+    def addCrewman(self, species):
+        if (len(self.soulsOnBoard) == 0): # MINIMUM COMMAND STAFF
+                recruit = Crewman("Human","Captain","Command", self.stardate)
+                recruitSuccess = True
+        elif (len(self.soulsOnBoard) == 1): # MINIMUM COMMAND STAFF
+            recruit = Crewman("Human","Commander","Command", self.stardate)
+            recruitSuccess = True
+        elif (len(self.soulsOnBoard) == 2): # MINIMUM COMMAND STAFF
+            department = random.choice(["Command","Engineering"])
+            recruit = Crewman("Human","Lt. Cmdr",department, self.stardate)
+            recruitSuccess = True
+        
+        elif (len(self.soulsOnBoard) == 3): # MINIMUM COMMAND STAFF
+            recruit = Crewman("Human","1st Lt.","Medical", self.stardate)
+            recruitSuccess = True
+
+        elif (len(self.soulsOnBoard) == 4): # MINIMUM COMMAND STAFF
+            department = random.choice(["Command", "Pilot", "Engineering", "Tactical", "Security", "Intelligence", "Physical-Science","Bio-Science"])
+            recruit = Crewman("Human","1st Lt.",department, self.stardate)
+            recruitSuccess = True
+
+        elif (len(self.soulsOnBoard) <= 5): # MINIMUM COMMAND STAFF
+            department = random.choice(["Command", "Pilot", "Engineering", "Tactical", "Security","Physical-Science", "Bio-Science"])
+            recruit = Crewman("Human","2nd Lt.",department, self.stardate)
+            recruitSuccess = True
+
+        elif (len(self.soulsOnBoard) <= MIN_CREW_FOR_STARSHIP+2): # MINIMUM COMMAND STAFF
+            department = random.choice(["Command", "Pilot", "Engineering", "Tactical", "Security","Physical-Science", "Bio-Science"])
+            recruit = Crewman("Human","Ensign",department, self.stardate)
+            recruitSuccess = True
+
+        elif (len(self.soulsOnBoard) == MIN_CREW_FOR_STARSHIP+3): # MINIMUM COMMAND STAFF
+            department = random.choice(["Pilot", "Engineering", "Tactical", "Security","Physical-Science", "Bio-Science"])
+            recruit = Crewman("Human","Chief",department, self.stardate)
+            recruitSuccess = True
+        
+        else:
+            department = random.choice(DEPARTMENT_LIST)
+            recruit = Crewman(species,"Crewman",department, self.stardate)
+            recruitSuccess = True 
+
+        for soul in self.soulsOnBoard:
+            if recruit.name == soul.name:
+                recruitSuccess = False 
+        if recruitSuccess:
+            self.soulsOnBoard.add(recruit)
+        else:
+            recruit.kill()
+
     
     def check_hull_and_crew(self, delta_time):
         """Check if the player's hull is below 0 and potentially kill crew members."""
+
+        self.soulsOnBoard.update()
+        self.crewQty = len(self.soulsOnBoard)
+
         if self.hull <= 0:
             self.crew_loss_timer += delta_time
             if self.crew_loss_timer >= 100:  # 500ms (half a second)
                 self.crew_loss_timer = 0  # Reset the timer
 
                 # 10% chance to lose a crew member
-                if self.crew > 0:
+                if self.crewQty > 0:
                     if random.random() < 0.5:
-                        self.crew -= random.randint(1,5)
-                        if player.crew <= 0: 
-                            player.crew = 0
+                        # self.crew -= random.randint(1,5)
+                        killqty = random.randint(1,5)
+
+
+                        souls = self.soulsOnBoard.sprites()
+                        for i in range(killqty):
+                            casualty = souls[-1]
+                            casualty.kill()
+                        self.crewQty = len(self.soulsOnBoard)
+
+                        # if player.crewQty <= 0: 
+                        #     player.crew = 0
 
                         EXPLOSION_CHANNEL.play(HURT)
-                        print(f"Critical damage! Crew have been lost. Remaining crew: {self.crew}")
+                        print(f"Critical damage! Crew have been lost. Remaining crew: {self.crewQty}")
                         
                         
                         if random.random() < 0.1:
@@ -460,6 +600,10 @@ class Player(pygame.sprite.Sprite):
         self.rect.topleft = (player_draw_x, player_draw_y)
 
 
+        self.soulsOnBoard.update()
+        self.crewQty = len(self.soulsOnBoard)
+
+
         # if self.hull <= 0:
         #     print("The player's ship's hull has been breached!")
         #     self.hull = 0
@@ -472,8 +616,10 @@ class Player(pygame.sprite.Sprite):
         # if self.condition == "BLUE": 
 
         ### RECHARGE / REPAIR AT STARBASE ###
+        repairing = False 
+
         if self.docked:
-            repairing = False 
+            
             if self.energy < BASE_RELOAD_ENERGY:
                 self.energy += ENERGY_CHARGE_TICK
                 repairing = True
@@ -482,8 +628,10 @@ class Player(pygame.sprite.Sprite):
                 self.torpedo_qty += 1
                 repairing = True
 
-            if self.crew < MAX_CREW:
-                self.crew += 1
+            if self.crewQty < self.crewMax:
+                # self.crew += 1
+                self.addCrewman(random.choice(ALLIED_SPECIES_LIST))
+                self.crewQty = len(self.soulsOnBoard)
                 repairing = True
 
             if self.hull < MAX_HULL:
@@ -494,11 +642,26 @@ class Player(pygame.sprite.Sprite):
                 self.shield_energy += ENERGY_CHARGE_TICK
                 repairing = True
 
-            if repairing:
-                self.stardate += STARDATE_PER_REPAIR_TICK
+
+        elif self.inOrbit:
+
+            if self.energy < BASE_RELOAD_ENERGY//4:
+                self.energy += ENERGY_CHARGE_TICK//2
+                repairing = True
+                if self.energy > BASE_RELOAD_ENERGY//4:
+                    self.energy = BASE_RELOAD_ENERGY//4
+
+            if self.hull < MAX_HULL*.75:
+                self.hull += HULL_REPAIR_TICK//2
+                repairing = True
+                if self.hull > MAX_HULL*.75:
+                    self.hull = MAX_HULL*.75 
+
+
+        if repairing:
+            self.stardate += STARDATE_PER_REPAIR_TICK
 
             if self.shields_on == True:
-
                 player.shields_toggle()
 
         # DON"T EXCEED LIMITED ####
@@ -629,7 +792,7 @@ class Player(pygame.sprite.Sprite):
                 self.energy -= phaser_power
 
                 if num_enemy > 0:  # Only fire phasers if there are enemies present
-                    damage = phaser_power // num_enemy
+                    damage = phaser_power / num_enemy
 
                     def fire_single_phaser(enemy):
                         WEAPON_CHANNEL.play(PHASER_SOUND)
@@ -1238,25 +1401,38 @@ class Base(pygame.sprite.Sprite):
 
 ### ENEMY CLASS ####
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, grid_x, grid_y):
+    def __init__(self, grid_x, grid_y, name="INTRUDER", image=INTRUDER_SHIP):
         super().__init__()
 
         self.grid_x = grid_x
         self.grid_y = grid_y
-        self.image = ENEMY_SHIP
-        self.orig_image = pygame.transform.scale(self.image, (SQUARE_SIZE, SQUARE_SIZE))
+        self.orig_image = image
+        self.image = self.orig_image
+
+        # self.orig_image = pygame.transform.scale(self.orig_image, (SQUARE_SIZE, SQUARE_SIZE))
         self.image = self.orig_image
 
         self.rect = self.image.get_rect()
         self.last_move_direction = random.choice(["up", "down", "left", "right"])
         self.update_position()
 
-        self.name = "AVENGER"
+        self.name = name
 
         self.torpedo_qty = 10
-        self.energy = random.randint(800 , 1200)
-        self.shields = random.randint(40, 60)
-        self.hull = random.randint(150, 250)
+
+        if self.name == "INTRUDER":
+            self.energy = random.randint(600, 1200)
+            self.shields = random.randint(25, 75)
+            self.hull = random.randint(50, 100)
+            self.min_phasor = 100
+            self.max_phasor = 250
+
+        elif self.name == "AVENGER":
+            self.energy = random.randint(800 , 1600)
+            self.shields = random.randint(75, 100)
+            self.hull = random.randint(150, 200)
+            self.min_phasor = 200
+            self.max_phasor = 450
 
         self.speed = 2
 
@@ -1295,7 +1471,7 @@ class Enemy(pygame.sprite.Sprite):
             distance = abs(self.grid_x - player.grid_x) + abs(self.grid_y - player.grid_y)
 
             # Base phaser power (e.g., 300)
-            phaser_power = random.randint(300, 500)
+            phaser_power = random.randint(self.min_phasor, self.max_phasor)
             # Adjust damage based on distance (similar to player's phaser)
             if distance == 0:
                 damage = int(phaser_power * 0.9)
@@ -1305,6 +1481,8 @@ class Enemy(pygame.sprite.Sprite):
                 damage = int(phaser_power * 0.35)
             else:
                 damage = 0  # No effect beyond 10 sectors
+
+            print(f"{self.name} fires phaser at the player! Distance: {distance}, Damage: {damage}")
 
             # Apply damage to the player's shields and hull
             if player.shields > 0:
@@ -1322,7 +1500,7 @@ class Enemy(pygame.sprite.Sprite):
             self.energy -= 100
 
             # Visual/feedback (e.g., phaser beam)
-            print(f"{self.name} fires phaser at the player! Distance: {distance}, Damage: {damage}")
+            
             # Create and add a phaser blast
 
             phaser_blast = Phaser_blast(self.grid_x, self.grid_y, player.grid_x, player.grid_y, GREEN)
@@ -1343,7 +1521,7 @@ class Enemy(pygame.sprite.Sprite):
                     #         player.crew = 0
 
 
-            if player.crew <= 0:
+            if player.crewQty <= 0:
                 print("The player's ship has been destroyed!")
 
 
@@ -1484,9 +1662,10 @@ class Planet:
         self.quadrant_y = quadrant_y
         self.name = name
         self.size = random.randint(1, 10)  # Size (e.g., 1 = small, 10 = massive)
-        self.planet_type = planet_type
-        self.resources = self.generate_resources()
-        self.inhabited = random.choice([True, False])  # Randomly determine if the planet is inhabited
+
+        # self.planet_type = planet_type
+        # self.resources = self.generate_resources()
+        # self.inhabited = random.choice([True, False])  # Randomly determine if the planet is inhabited
 
         random_planet = random.choice(ALL_PLANET_IMAGES)
 
@@ -1498,17 +1677,23 @@ class Planet:
         self.shields = 0 
         self.hull = 0 
 
+        print("planet init complete")
+
 
     def generate_name(self, sector_planets, sector_planet_index):
         """
         Generate a name for the planet by appending a letter (A, B, C, etc.) 
         based on its index in the sector.
         """
+        print("generate name")
         base_name = get_quadrant_name(self.quadrant_x, self.quadrant_y)
         if len(sector_planets) > 1:
             suffix = chr(97 + sector_planet_index)  # Convert index to ASCII (A=65, B=66, etc.)
+            print(f"generated name {base_name} - {suffix}")
             return f"{base_name} - {suffix}"
+
         else:
+            print(f"generated name {base_name}")
             return f"{base_name}"
 
 
@@ -1543,90 +1728,96 @@ class Sector:
     def __init__(self, quadrant_x, quadrant_y):
         self.quadrant_x = quadrant_x
         self.quadrant_y = quadrant_y
-        self.stars = []  # List to store star positions (each star is a tuple of (x, y))
-        self.bases = []  # List to store base positions (each base is a tuple of (x, y))
-        self.enemies = []
-        self.planets = []
+        self.stars = []  # List of star positions (tuples)
+        self.bases = []  # List of base objects
+        self.enemies = []  # List of enemy objects
+        self.planets = []  # List of planet objects
 
         self.visited = False
         self.last_star_count = 0
         self.last_base_count = 0
         self.last_enemy_count = 0
 
-
+    def is_position_occupied(self, x, y):
+        """Check if a position is occupied by any object in the sector."""
+        # Check for stars
+        if (x, y) in self.stars:
+            return True
+        # Check for planets
+        if any(planet.grid_x == x and planet.grid_y == y for planet in self.planets):
+            return True
+        # Check for bases
+        if any(base.grid_x == x and base.grid_y == y for base in self.bases):
+            return True
+        # Check for enemies
+        if any(enemy.grid_x == x and enemy.grid_y == y for enemy in self.enemies):
+            return True
+        return False
 
     def generate(self, player, player_x, player_y):
         """Generate stars, planets, bases, and enemies for the sector."""
-
         # Create a weighted list for the number of stars
         weighted_numbers = [1, 7, 8, 9] + [2, 3, 4, 5, 6] * 4
         num_stars = random.choice(weighted_numbers)
 
-        # Randomly place stars or planets in grid squares (ensure no duplicates or player position)
+        # Randomly place stars or planets
+        max_attempts = 100  # Prevent infinite loops
         while len(self.stars) + len(self.planets) < num_stars:
-            obj_x = random.randint(0, GRID_SIZE - 1)
-            obj_y = random.randint(0, GRID_SIZE - 1)
-            obj_pos = (obj_x, obj_y)
-
-            # Ensure the position isn't the same as the player's position or a duplicate in either stars or planets
-            if obj_pos != (player_x, player_y) and obj_pos not in self.stars:
-                
-                # Check for any planet in self.planets that shares the same position
-                planet_exists = any(planet.grid_x == obj_x and planet.grid_y == obj_y for planet in self.planets)
-                base_exists = any(base.grid_x == obj_x and base.grid_y == obj_y for base in self.bases)
-
-                if not planet_exists and not base_exists :
-                    # Random chance to create a planet (10% chance, adjust as needed)
-                    if random.random() < 0.1:  # 10% chance for a planet
+            for _ in range(max_attempts):
+                obj_x = random.randint(0, GRID_SIZE - 1)
+                obj_y = random.randint(0, GRID_SIZE - 1)
+                if (obj_x, obj_y) != (player_x, player_y) and not self.is_position_occupied(obj_x, obj_y):
+                    if random.random() < 0.2:  # 10% chance to create a planet
                         new_planet = Planet(obj_x, obj_y, self.quadrant_x, self.quadrant_y)
                         self.planets.append(new_planet)
-                    # else:
-                        # new_star = Star(obj_x, obj_y, self.quadrant_x, self.quadrant_y)
-                        # self.stars.append(new_star)
                     else:  # Otherwise, add a star
-                        self.stars.append(obj_pos)
+                        self.stars.append((obj_x, obj_y))
+                    break  # Successfully placed an object, move to the next
+            else:
+                print("Max attempts reached while placing stars/planets.")
+                break
 
+        # Assign names to planets
         for i, planet in enumerate(self.planets):
-            planet.name = planet.generate_name(self.planets,i)
+            planet.name = planet.generate_name(self.planets, i)
 
-        # Ensure there's a maximum number of bases across all sectors
+        # Place bases
         starbase_count_ttl = sum(sector.count_bases() for sector in player.all_sectors)
-        if starbase_count_ttl < MAX_NUM_OF_BASES:
-            if random.random() < 0.1:  # 10% chance of having a base in the sector
-                placing = True
-                while placing:
-                    grid_x, grid_y = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
-                    base_pos = (grid_x, grid_y)
-                    base = Base(grid_x, grid_y)
-                    if base_pos not in self.stars and base_pos not in self.bases and base_pos != (player_x, player_y):
-                        # Check for any planet in self.planets that shares the same position
-                        planet_exists = any(planet.grid_x == obj_x and planet.grid_y == obj_y for planet in self.planets)
-                        base_exists = any(base.grid_x == obj_x and base.grid_y == obj_y for base in self.bases)
+        if starbase_count_ttl < MAX_NUM_OF_BASES and random.random() < 0.1:  # 10% chance for a base
+            for _ in range(max_attempts):
+                base_x = random.randint(0, GRID_SIZE - 1)
+                base_y = random.randint(0, GRID_SIZE - 1)
+                if (base_x, base_y) != (player_x, player_y) and not self.is_position_occupied(base_x, base_y):
+                    new_base = Base(base_x, base_y)
+                    self.bases.append(new_base)
+                    break
+            else:
+                print("Max attempts reached while placing bases.")
 
-                        if not planet_exists and not base_exists :
-                            self.bases.append(base)  # Add base to the list
-                            placing = False
-
-        # 25% chance of having enemies in the sector
-        if random.random() < 0.25:
+        # Place enemies
+        if random.random() < 0.25:  # 25% chance of enemies
             num_of_enemies = random.randint(1, 4)
+
+            
+            enemy_name = "INTRUDER"
+            enemy_image = INTRUDER_SHIP
+
+            if random.random() < .5:
+                enemy_name = "AVENGER"
+                enemy_image = AVENGER_SHIP
+
+
             for _ in range(num_of_enemies):
-                placing = True
-                while placing:
-                    grid_x, grid_y = (random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1))
-                    enemy_pos = (grid_x, grid_y)
-                    if enemy_pos not in self.stars and enemy_pos not in self.bases and enemy_pos != (player_x, player_y):
-                        # Check for any planet in self.planets that shares the same position
-                         # Check for any planet in self.planets that shares the same position
-                        planet_exists = any(planet.grid_x == obj_x and planet.grid_y == obj_y for planet in self.planets)
-                        base_exists = any(base.grid_x == obj_x and base.grid_y == obj_y for base in self.bases)
+                for _ in range(max_attempts):
+                    enemy_x = random.randint(0, GRID_SIZE - 1)
+                    enemy_y = random.randint(0, GRID_SIZE - 1)
+                    if (enemy_x, enemy_y) != (player_x, player_y) and not self.is_position_occupied(enemy_x, enemy_y):
+                        new_enemy = Enemy(enemy_x, enemy_y,enemy_name,enemy_image)
+                        self.enemies.append(new_enemy)
+                        break
+                else:
+                    print("Max attempts reached while placing enemies.")
 
-                        if not planet_exists and not base_exists :
-
-                            if not self.is_enemy_at(grid_x, grid_y):
-                                new_enemy = Enemy(grid_x, grid_y)
-                                self.enemies.append(new_enemy)  # Add enemy to the list
-                                placing = False
 
     
     def count_bases(self):
@@ -1675,7 +1866,365 @@ class Sector:
         return True  # The sector is empty
 
 
+## DEFINE CREWMAN ## =========================================================================================
+class Crewman(pygame.sprite.Sprite):
+    count = 0
+    def __init__(self,species,rank,department,stardate):
+        Crewman.count += 1
+        super(Crewman, self).__init__()
 
+        self.species = species
+
+        self.rank = rank
+        self.serialNumber = Crewman.count
+        self.enrollmentDate = stardate #calender.show()
+        self.lastDayOfShoreLeave = stardate #calender.day
+        self.yesterday = stardate #calender.day
+        self.homeworld = "None"
+        
+        self.strength = random.randint(20,40)
+        self.health  = random.randint(25,40)
+        self.stamina = random.randint(40,70)
+        self.bravery = random.randint(10,60)
+        self.reactions = random.randint(30,60) 
+        self.accuracy = random.randint(40,70) 
+        self.psiStrength = random.randint(0,100)
+        self.psiSkill = 00 
+
+        self.command        = random.randint(10,60) 
+        self.piloting       = random.randint(10,60) 
+        self.communications = random.randint(10,60) 
+        self.engineering    = random.randint(10,60) 
+        self.tactical       = random.randint(10,60) 
+        self.security       = random.randint(10,60) 
+        self.physicalScience  = random.randint(10,60)
+        self.bioScience       = random.randint(10,60)  
+        self.medical        = random.randint(10,60)  
+
+        
+
+
+        self.department = department
+        self.shirtColor = GOLD
+
+        if self.department in ["Command", "Pilot", "Communications"]:
+            self.shirtColor = RED
+            if self.department == "Command":
+                self.command += random.randint(20,40) 
+            elif self.department == "Pilot":
+                self.piloting += random.randint(20,40) 
+            elif self.department == "Communications":
+                self.communications += random.randint(20,40) 
+
+
+        elif self.department in ["Engineering","Tactical","Security","Intelligence"]:
+            self.shirtColor = GOLD
+            if self.department == "Engineering":
+                self.engineering += random.randint(20,40)
+            elif self.department == "Tactical":
+                self.tactical += random.randint(20,40) 
+            elif self.department == "Security":
+                self.security += random.randint(20,40)
+            elif self.department == "Intelligence":
+                self.command += random.randint(10,30)
+                self.tactical += random.randint(10,30)
+                self.security += random.randint(10,30)
+                self.communications += random.randint(10,30)
+                self.shirtColor = LIGHT_GREY 
+
+        elif self.department in ["Medical"]:
+            self.shirtColor = BLUE
+            self.medical += random.randint(20,40) 
+
+        elif self.department in ["Physical-Science"]:
+            self.shirtColor = PURPLE
+            self.physicalScience += random.randint(20,40)
+
+        elif self.department in ["Bio-Science"]:
+            self.shirtColor = GREEN
+            self.bioScience += random.randint(20,40)  
+
+
+        else: self.shirtColor = GOLD
+
+
+        if self.species == "Android":
+
+
+            self.name = random.choice(ANDROID_NAMES) + "-" + str('{0:03d}'.format(random.randint(000,999)))
+
+
+            self.strength = round(self.strength/10)*10
+            self.health = round(self.health/10)*10
+            self.stamina = round(self.stamina/10)*10
+            self.bravery = 00
+            self.reactions = round(self.reactions/10)*10
+            self.accuracy = round(self.accuracy/10)*10
+            self.psiStrength = 00
+            self.command = round(self.command/10)*10
+            self.piloting = round(self.piloting/10)*10
+            self.communications = round(self.communications/10)*10
+            self.engineering = round(self.engineering/10)*10
+            self.tactical = round(self.tactical/10)*10
+            self.security = round(self.security/10)*10
+            self.physicalScience = round(self.physicalScience/10)*10
+            self.bioScience = round(self.bioScience/10)*10
+            self.medical = round(self.medical/10)*10
+
+        elif self.species == "Pkunk": #and (plot.pkunkDateA != None and not plot.pkunkMoveStarted):
+
+
+            self.name = random.choice(PKUNK_NAMES) + "-" + random.choice(PKUNK_NAMES)
+            self.homeworld = "Gamma Krueger I"
+
+
+            self.strength = self.strength -10
+            self.health = self.health -10
+            self.stamina = self.stamina 
+            self.bravery = self.bravery +10
+            self.reactions = self.reactions +10
+            self.accuracy = self.accuracy 
+            self.psiStrength = random.randint(50,100)
+            self.psiSkill = random.randint(40,100)
+            self.command = self.command 
+            self.piloting = self.piloting +10
+            self.communications = self.communications +10
+            self.engineering = self.engineering -10
+            self.tactical = self.tactical 
+            self.security = self.security -10
+            self.physicalScience = self.physicalScience +20
+            self.bioScience = self.bioScience
+            self.medical = self.medical -10
+
+        else:
+            self.species = "Human"
+            self.name = random.choice(CREWNAMELIST)
+            
+            if self.serialNumber <= MAX_CREW:
+                chanceFromEarth = random.randint(0,100)
+                if chanceFromEarth >= 70 and chanceFromEarth < 80:
+                    self.homeworld = "Mars"
+                elif chanceFromEarth >= 80 and chanceFromEarth < 90:
+                    self.homeworld = "Ceres"
+                elif chanceFromEarth >= 90:
+                    self.homeworld = "Earth"
+                else: self.homeworld = "Unzervalt"
+            else: self.homeworld = "Earth"
+
+        numofextraskills = random.randint(0,2)
+        count = 0
+        self.extraSkills = []
+        while count < numofextraskills:
+            count += 1
+            self.extraSkills.append(random.choice(EXTRA_SKILL_LIST))
+        
+
+        self.xp      = 00 
+
+        self.goodTraits = []
+        numofextraTraits = random.randint(0,2)
+        count = 0
+        while count < numofextraTraits:
+            count += 1
+            ndTrait = random.choice(POSITIVE_CHARACTER_TRAITS)
+            if not (ndTrait in self.goodTraits):
+                self.goodTraits.append(ndTrait)
+
+        self.badTraits = []
+        if random.randint(0,100) > 60:
+            self.badTraits.append(random.choice(NEGATIVE_CHARACTER_TRAITS))
+
+    def getEnrollmentDate(self):
+        return self.enrollmentDate
+
+    def getSerialNumber(self):
+        return '{0:05d}'.format(self.serialNumber)
+
+    def info(self):
+        text = ""
+
+        if self.species == "Android":
+            text += self.name
+
+        else:
+            
+            if self.rank in ["Crewman", "Able Crewman"]:
+                ...
+                # text += "  "
+
+
+            if self.department == "Medical": #in ["Science" or "Medical"]:
+                    text += "Dr. " + self.name
+
+            elif self.rank not in ["Crewman", "Able Crewman"]:
+                    text += self.rank + " " + self.name
+
+            else:
+                if self.department == "Intelligence": 
+                    text += "Agent " + self.name
+                else:
+                    text += self.name
+
+            ## SHOW THE CREWMANS RANK
+            # if self.rank == "Able Crewman":
+            #     text += " //"
+            # elif self.rank == "Chief":
+            #     text += " ///"
+            # elif self.rank == "Ensign":
+            #     text += " <*>"
+            # elif self.rank == "2nd Lt.":
+            #     text += " <*^>"
+            # elif self.rank == "1st Lt.":
+            #     text += " <**>"
+            # elif self.rank == "Lt. Cmdr":
+            #     text += " <**^>"
+            # elif self.rank == "Commander":
+            #     text += " <***>"
+            # elif self.rank == "Captain":
+            #     text += " <****>"
+
+        return text
+
+    def fullInfo(self):
+        text = ""
+        if self.species == "Android":
+            text += self.name
+        else:
+
+            if self.rank == "Able Crewman":
+                text += " // "
+            elif self.rank == "Chief":
+                text += " /// "
+            elif self.rank == "Ensign":
+                text += " <*> "
+            elif self.rank == "2nd Lt.":
+                text += " <*^> "
+            elif self.rank == "1st Lt.":
+                text += " <**> "
+            elif self.rank == "Lt. Cmdr":
+                text += " <**^> "
+            elif self.rank == "Commander":
+                text += " <***> "
+            elif self.rank == "Captain":
+                text += " <****> "
+
+
+            if self.department == "Medical": #in ["Science" or "Medical"]:
+                text += "Dr. " + self.name
+
+            elif self.rank not in ["Crewman", "Able Crewman"]:
+                    text += self.rank + " " + self.name
+
+            else:
+                if self.department == "Intelligence": 
+                    text += "Agent " + self.name
+                else:
+                    text += self.rank + " " + self.name
+
+
+        return text
+
+
+    def getName(self):
+        text = ""
+
+        if self.department == "Medical": #in ["Science" or "Medical"]:
+                text += "Dr. " + self.name
+
+        elif self.rank not in ["Crewman", "Able Crewman"]:
+                text += self.rank + " " + self.name
+
+        else:
+            text += self.name
+
+        return text
+
+    def update(self):
+        ...
+
+        if self.species == "Android": # NO XP FOR ROBOTS 
+            self.xp = 0
+
+        # if player.stardate > self.lastDayOfShoreLeave+1:
+        #     if player.stardate > self.yesterday:
+        #         self.yesterday = player.stardate
+        #         self.xp += 1
+
+        # if player.orbitingSubPlanet != None:
+        #     if type(player.orbitingSubPlanet) is Starbase:
+        #         if player.orbitingSubPlanet.isAllied:
+        #             self.lastDayOfShoreLeave = calender.day
+
+        #             if self.xp >= 10 and self.rank == "Crewman": # become able
+        #                 self.rank = RANK_LIST[(RANK_LIST.index(self.rank) + 1)]
+
+        #             elif self.xp >= 30 and self.rank == "Able Crewman": # become chief
+        #                 crew = player.soulsOnBoard.sprites()
+        #                 count = 0
+        #                 for crewmate in crew:
+        #                     if crewmate.rank == "Chief":
+        #                         count += 1
+        #                 if count == 0:
+        #                     self.rank = RANK_LIST[(RANK_LIST.index(self.rank) + 1)]
+
+        #             elif self.xp >= 30 and self.rank == "Chief": # become lt.
+        #                 crew = player.soulsOnBoard.sprites()
+        #                 count = 0
+        #                 for crewmate in crew:
+        #                     if crewmate.rank == "2nd Lt.":
+        #                         count += 1
+        #                 if count <= 1:
+        #                     self.rank = RANK_LIST[(RANK_LIST.index(self.rank) + 2)] # skip ensign rank when promoting chiefs
+
+        #             elif self.xp >= 30 and self.rank == "Ensign": # promote if available 2nd lt posistion
+        #                 crew = player.soulsOnBoard.sprites()
+        #                 count = 0
+        #                 for crewmate in crew:
+        #                     if crewmate.rank == "2nd Lt." and crewmate.department != "Medical":
+        #                         count += 1
+        #                 if count <= 1:
+        #                     self.rank = RANK_LIST[(RANK_LIST.index(self.rank) + 1)]
+
+        #             elif self.xp >= 60 and self.rank == "2nd Lt.": # promote if available 1st lt posistion
+        #                 crew = player.soulsOnBoard.sprites()
+        #                 count = 0
+        #                 for crewmate in crew:
+        #                     if crewmate.rank == "1st Lt." and crewmate.department != "Medical":
+        #                         count += 1
+        #                 if count == 0:
+        #                     self.rank = RANK_LIST[(RANK_LIST.index(self.rank) + 1)]
+
+        #             elif self.xp >= 80 and self.rank == "1st Lt.": # promote if available 2nd lt posistion
+        #                 crew = player.soulsOnBoard.sprites()
+        #                 count = 0
+        #                 for crewmate in crew:
+        #                     if crewmate.rank == "Lt. Cmdr" and crewmate.department != "Medical":
+        #                         count += 1
+        #                 if count == 0:
+        #                     self.rank = RANK_LIST[(RANK_LIST.index(self.rank) + 1)]
+
+        #             elif self.xp >= 100 and self.rank == "Lt. Cmdr": # promote if available 2nd lt posistion
+        #                 crew = player.soulsOnBoard.sprites()
+        #                 count = 0
+        #                 for crewmate in crew:
+        #                     if crewmate.rank == "Commander" and crewmate.department != "Medical":
+        #                         count += 1
+        #                 if count == 0:
+        #                     self.rank = RANK_LIST[(RANK_LIST.index(self.rank) + 1)]
+
+        #             elif self.xp >= 120 and self.rank == "Commander": # promote if available 2nd lt posistion
+        #                 crew = player.soulsOnBoard.sprites()
+        #                 count = 0
+        #                 for crewmate in crew:
+        #                     if crewmate.rank == "Captain" and crewmate.department != "Medical":
+        #                         count += 1
+        #                 if count == 0:
+        #                     self.rank = RANK_LIST[(RANK_LIST.index(self.rank) + 1)]
+             
+        #             elif self.xp >= 365 and self.rank == "Captain": # promote if available 2nd lt posistion
+        #                 ...
+
+   
 
 ### END OBJECT CLASSES ######################################################################################################
 
@@ -1751,23 +2300,32 @@ def draw_sector_map():
                     else:
                         player.condition = "RED"
 
-            # Check for enemies
+           # Check for enemies
             elif player.current_quadrant.is_enemy_at(col, row):
                 this_enemy = player.current_quadrant.is_enemy_at(col, row)
+                
+                # Calculate the top-left corner of the grid square
                 enemy_screen_x = GRID_ORIGIN_X + (col * SQUARE_SIZE)
                 enemy_screen_y = GRID_ORIGIN_Y + (row * SQUARE_SIZE)
-                offset_x = (SQUARE_SIZE - ENEMY_SHIP.get_width()) // 2
-                offset_y = (SQUARE_SIZE - ENEMY_SHIP.get_height()) // 2
+                
+                # Calculate the offset to center the enemy image within the grid square
+                offset_x = (SQUARE_SIZE - this_enemy.image.get_width()) // 2
+                offset_y = (SQUARE_SIZE - this_enemy.image.get_height()) // 2
 
+                # Draw the enemy image centered in the grid square
                 SCREEN.blit(this_enemy.image, (enemy_screen_x + offset_x, enemy_screen_y + offset_y))
 
+                # If the enemy has shields, draw a blue circle around it
                 if this_enemy.shields >= 1:
-                    center_x = enemy_screen_x + SQUARE_SIZE // 2
-                    center_y = enemy_screen_y + SQUARE_SIZE // 2
-                    radius = SQUARE_SIZE // 2  # Radius is half the square size
-                    pygame.draw.circle(SCREEN, BLUE, (center_x, center_y), radius, 2)  # Blue shield
+                    center_x = enemy_screen_x + (SQUARE_SIZE // 2)  # X-coordinate of the square's center
+                    center_y = enemy_screen_y + (SQUARE_SIZE // 2)  # Y-coordinate of the square's center
+                    # radius = SQUARE_SIZE // 2  # Radius is half the square size
+                    radius = 4 + this_enemy.image.get_width()/2 
+                    pygame.draw.circle(SCREEN, BLUE, (center_x, center_y), radius, 2)  # Blue outline for shields
 
-                pygame.draw.rect(SCREEN, RED, rect, 1)  # Red grid line for enemies
+                # Draw a red grid line around the square for visual clarity
+                pygame.draw.rect(SCREEN, RED, (enemy_screen_x, enemy_screen_y, SQUARE_SIZE, SQUARE_SIZE), 1)
+
 
             # Default grid square
             else:
@@ -1868,7 +2426,7 @@ def draw_reports():
     draw_report_line("HULL STRENGTH:", str(round(player.hull)), report_pos_y)
     report_pos_y += FONT24.get_height()
 
-    draw_report_line("CREW:", f"{player.crew}", report_pos_y)
+    draw_report_line("CREW:", f"{player.crewQty}", report_pos_y)
     report_pos_y += FONT24.get_height()
 
     draw_report_line("------------------------------", f"-------------", report_pos_y)
@@ -1950,7 +2508,7 @@ def draw_report_line(title, value, y_pos):
             if not flash_on: value_color = BLACK
 
     elif title == "HULL STRENGTH:":
-        if player.hull < (MAX_HULL * .80):
+        if player.hull < (MAX_HULL * .75):
             value_color = YELLOW
             if not flash_on: value_color = BLACK
 
@@ -2125,8 +2683,8 @@ def draw_quadrant_map(player):
                 textC  = str(num_stars)
 
                 colorA = RED if num_enemy > 0 else DARK_GREEN
-                colorB = BLUE if num_bases > 0 else DARK_GREEN
-                colorC = GREEN if num_stars > 0 else DARK_GREEN
+                colorB = LIGHT_BLUE if num_bases > 0 else DARK_GREEN
+                colorC = YELLOW if num_stars > 0 else DARK_GREEN
 
             elif this_sector.visited:
                 textA  = str(this_sector.last_star_count)
@@ -2135,7 +2693,7 @@ def draw_quadrant_map(player):
 
                 colorA = DARK_RED if num_enemy > 0 else DARK_GREEN
                 colorB = DARK_BLUE if num_bases > 0 else DARK_GREEN
-                colorC = DARK_GREEN if num_stars > 0 else DARK_GREEN
+                colorC = DARK_YELLOW if num_stars > 0 else DARK_GREEN
 
             else:
                 textA  = "*"
@@ -2152,13 +2710,13 @@ def draw_quadrant_map(player):
                 if flash_on: 
                     grid_color = GREEN
                     colorA = RED if num_enemy > 0 else GREEN
-                    colorB = BLUE if num_bases > 0 else GREEN
-                    colorC = GREEN if num_stars > 0 else GREEN
+                    colorB = LIGHT_BLUE if num_bases > 0 else GREEN
+                    colorC = YELLOW if num_stars > 0 else GREEN
                 else:
                     grid_color = DARK_GREEN
                     colorA = DARK_RED if num_enemy > 0 else DARK_GREEN
                     colorB = DARK_BLUE if num_bases > 0 else DARK_GREEN
-                    colorC = DARK_GREEN if num_stars > 0 else DARK_GREEN
+                    colorC = DARK_YELLOW if num_stars > 0 else DARK_GREEN
 
 
                 # colorC = GREEN
@@ -2285,8 +2843,403 @@ def prompt_shields_transfer(screen):
                         input_text += event.unicode
 
 
+def prompt_crew_roster():
+    global showing_roster
+    global roster_selected_line
+    global projectile_group
+    global key_pressed
+    global overlay_images
 
 
+    key_pressed = False
+
+    # Handle events
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+            showing_roster = False
+
+        elif event.type == pygame.KEYDOWN:  # Check for key presses
+            key_pressed = True
+            if event.key == pygame.K_c:
+                print("toggle roster off")
+                key_pressed = False
+                showing_roster = False
+            if event.key == pygame.K_UP:
+
+                if len(player.soulsOnBoard) > 0:
+                    if roster_selected_line != 0:
+                        roster_selected_line -= 1
+                        # next_line.play()
+                    else:
+                        # next_line.play()
+                        roster_selected_line = len(player.soulsOnBoard)-1
+
+                else: no.play()
+            if event.key == pygame.K_DOWN:
+
+                if len(player.soulsOnBoard) > 0:
+                    if roster_selected_line < (len(player.soulsOnBoard)-1):
+                        roster_selected_line += 1
+                        # next_line.play()
+                    else:
+                        #next_line.play()
+                        roster_selected_line = 0
+                else: ... #no.play()
+
+    print("show roster")
+    SCREEN.fill(BLACK)
+
+
+
+    ##draw_all_to_screen()
+    
+    draw_alert_info(SCREEN)
+    
+    # draw_sector_map()
+    
+    # projectile_group.update() 
+    # for projectile in projectile_group:
+    #     if not projectile.out_of_bounds():
+    #         projectile.draw(SCREEN)
+
+    draw_reports()
+    display_enemy_readout(SCREEN)
+    draw_quadrant_map(player)
+
+    draw_captain(overlay_images,key_pressed)
+
+    if showing_roster:
+        showRoster()
+
+    
+
+    pygame.display.flip()
+    # Cap the frame rate
+    clock.tick(FPS)
+
+def getRankforSort(obj):
+    return RANK_LIST.index(obj.rank)
+
+# def showRoster():
+#     global roster_selected_line
+
+#     line         = 0
+#     space        = 0
+#     row          = 0
+#     columnSpace  = 0
+#     extracrewcount = 0 
+
+
+#     crewMuster = player.soulsOnBoard.sprites()
+#     crewMuster.sort(key = getRankforSort, reverse = True)
+
+    
+
+#     for crewmate in crewMuster:
+#         crewMateText = ""
+#         if line == roster_selected_line:
+#             highlighted_choice = crewmate
+#             crewMateText = "-"
+#         else: ...
+
+
+#         if line >= 30-1:
+#             extracrewcount += 1
+#         else:
+#             crewMateText += crewmate.info()
+#             LIST_FONT.render_to(screen, (SCREEN_WIDTH-560+columnSpace, 440+MAP_START_Y+space), crewMateText, crewmate.shirtColor)
+#             space += 15
+#             row   += 1
+#             if row >= 10:
+#                 row = 0
+#                 space = 0
+#                 columnSpace += 205
+#         line  += 1
+#     if line > 30: 
+#         LIST_FONT.render_to(screen, (SCREEN_WIDTH-560+columnSpace, 440+MAP_START_Y+space), "  + " + str(extracrewcount) + " Additional Crew", GREEN)
+
+#     # SHOW INDIVIUDAL CREW PORTFOLIO -------------------------------------------------------------------------
+
+#     pygame.draw.rect(screen, DARKGREY, pygame.Rect(MAP_START_X+6,MAP_START_Y+190, MAP_WIDTH-10-10, 425))
+#     pygame.draw.rect(screen, GREY, pygame.Rect(MAP_START_X+6,MAP_START_Y+190, MAP_WIDTH-10-10, 425),2)
+
+#     pygame.draw.rect(screen, DARKGREY, pygame.Rect(MAP_START_X+8,MAP_START_Y+195, MAP_WIDTH-10-10, 425))
+#     pygame.draw.rect(screen, LIGHTGREY, pygame.Rect(MAP_START_X+8,MAP_START_Y+195, MAP_WIDTH-10-10, 425),2)
+
+#     pygame.draw.rect(screen, DARKGREY, pygame.Rect(MAP_START_X+10,MAP_START_Y+200, MAP_WIDTH-10-10, 425))
+#     pygame.draw.rect(screen, LIGHTGREY, pygame.Rect(MAP_START_X+10,MAP_START_Y+200, MAP_WIDTH-10-10, 425),2)
+
+#     crewmate = highlighted_choice
+#     SUB_FONT.render_to(screen, (MAP_START_X+10+10,MAP_START_Y+200+10), crewmate.fullInfo(), crewmate.shirtColor)
+
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10+275,MAP_START_Y+200+10), "Serial # "       + str(crewmate.getSerialNumber())  , LIGHTGREY)
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10+375,MAP_START_Y+200+10), "SPECIES: "       + crewmate.species, GREEN)
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10+375,MAP_START_Y+200+25), "HOMEWORLD: "     + crewmate.homeworld, GREEN)
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10+500,MAP_START_Y+200+10), "Join Date: "     + crewmate.getEnrollmentDate() + "   -   XP: " + str(crewmate.xp),  WHITE)
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10,MAP_START_Y+200+10+25),  "DEPARTMENT: "    + crewmate.department, crewmate.shirtColor)
+
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10,MAP_START_Y+200+10+40),  "STRENGTH......... ",       WHITE)
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10+150,MAP_START_Y+200+10+40),str(crewmate.strength),       WHITE)
+#     pygame.draw.rect(screen, LIGHTGREY, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+40-1, 100, 12))
+#     pygame.draw.rect(screen, WHITE, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+40-1, crewmate.strength, 12))
+
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10,MAP_START_Y+200+10+55),  "HEALTH........... ",         WHITE)
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10+150,MAP_START_Y+200+10+55),str(crewmate.health),         WHITE)
+#     pygame.draw.rect(screen, LIGHTGREY, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+55-1, 100, 12))
+#     pygame.draw.rect(screen, WHITE, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+55-1, crewmate.health, 12))
+
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10,MAP_START_Y+200+10+70),  "STAMINA.......... ",        WHITE)
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10+150,MAP_START_Y+200+10+70),str(crewmate.stamina),        WHITE)
+#     pygame.draw.rect(screen, LIGHTGREY, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+70-1, 100, 12))
+#     pygame.draw.rect(screen, WHITE, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+70-1, crewmate.stamina, 12))
+
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10,MAP_START_Y+200+10+85),  "BRAVERY.......... ",        WHITE)
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10+150,MAP_START_Y+200+10+85),str(crewmate.bravery),        WHITE)
+#     pygame.draw.rect(screen, LIGHTGREY, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+85-1, 100, 12))
+#     pygame.draw.rect(screen, WHITE, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+85-1, crewmate.bravery, 12))
+
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10,MAP_START_Y+200+10+100), "REACTIONS........ ",      WHITE)
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10+150,MAP_START_Y+200+10+100),str(crewmate.reactions),      WHITE)
+#     pygame.draw.rect(screen, LIGHTGREY, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+100-1, 100, 12))
+#     pygame.draw.rect(screen, WHITE, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+100-1, crewmate.reactions, 12))
+
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10,MAP_START_Y+200+10+115), "ACCURACY......... ",       WHITE)
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10+150,MAP_START_Y+200+10+115),str(crewmate.accuracy),       WHITE)
+#     pygame.draw.rect(screen, LIGHTGREY, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+115-1, 100, 12))
+#     pygame.draw.rect(screen, WHITE, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+115-1, crewmate.accuracy, 12))
+
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10,MAP_START_Y+200+10+130), "PSI-STRENGTH..... ",    PURPLE)
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10+150,MAP_START_Y+200+10+130),str(crewmate.psiStrength),    PURPLE)
+#     pygame.draw.rect(screen, LIGHTGREY, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+130-1, 100, 12))
+#     pygame.draw.rect(screen, PURPLE, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+130-1, crewmate.psiStrength, 12))
+
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10,MAP_START_Y+200+10+145), "PSI-SKILL........ ",       PURPLE)
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10+150,MAP_START_Y+200+10+145),str(crewmate.psiSkill),       PURPLE)
+#     pygame.draw.rect(screen, LIGHTGREY, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+145-1, 100, 12))
+#     pygame.draw.rect(screen, PURPLE, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+145-1, crewmate.psiSkill, 12))
+
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10,MAP_START_Y+200+10+160), "COMMAND.......... ",        RED)
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10+150,MAP_START_Y+200+10+160),str(crewmate.command),        RED)
+#     pygame.draw.rect(screen, LIGHTGREY, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+160-1, 100, 12))
+#     pygame.draw.rect(screen, RED, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+160-1, crewmate.command, 12))
+
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10,MAP_START_Y+200+10+175), "PILOTING......... ",       RED)
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10+150,MAP_START_Y+200+10+175),str(crewmate.piloting),       RED)
+#     pygame.draw.rect(screen, LIGHTGREY, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+175-1, 100, 12))
+#     pygame.draw.rect(screen, RED, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+175-1, crewmate.piloting, 12))
+
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10,MAP_START_Y+200+10+190), "ENGINEERING...... ",    GOLD)
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10+150,MAP_START_Y+200+10+190),str(crewmate.engineering),    GOLD)
+#     pygame.draw.rect(screen, LIGHTGREY, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+190-1, 100, 12))
+#     pygame.draw.rect(screen, GOLD, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+190-1, crewmate.engineering, 12))
+
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10,MAP_START_Y+200+10+205), "TACTICAL........ ",       GOLD)
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10+150,MAP_START_Y+200+10+205),str(crewmate.tactical),       GOLD)
+#     pygame.draw.rect(screen, LIGHTGREY, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+205-1, 100, 12))
+#     pygame.draw.rect(screen, GOLD, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+205-1, crewmate.tactical, 12))
+
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10,MAP_START_Y+200+10+220), "SECURITY......... ",       GOLD)
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10+150,MAP_START_Y+200+10+220),str(crewmate.security),       GOLD)
+#     pygame.draw.rect(screen, LIGHTGREY, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+220-1, 100, 12))
+#     pygame.draw.rect(screen, GOLD, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+220-1, crewmate.security, 12))
+
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10,MAP_START_Y+200+10+235), "COMMUNICATIONS... ", RED)
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10+150,MAP_START_Y+200+10+235), str(crewmate.communications), RED)
+#     pygame.draw.rect(screen, LIGHTGREY, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+235-1, 100, 12))
+#     pygame.draw.rect(screen, RED, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+235-1, crewmate.communications, 12))
+
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10,MAP_START_Y+200+10+250), "PHYSICAL-SCIENCE..",        PURPLE)
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10+150,MAP_START_Y+200+10+250),str(crewmate.physicalScience),        PURPLE)
+#     pygame.draw.rect(screen, LIGHTGREY, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+250-1, 100, 12))
+#     pygame.draw.rect(screen, PURPLE, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+250-1, crewmate.physicalScience, 12))
+
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10,MAP_START_Y+200+10+265), "BIO-SCIENCE....... ",        GREEN)
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10+150,MAP_START_Y+200+10+265),str(crewmate.bioScience),        GREEN)
+#     pygame.draw.rect(screen, LIGHTGREY, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+265-1, 100, 12))
+#     pygame.draw.rect(screen,  GREEN, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+265-1, crewmate.bioScience, 12))
+
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10,MAP_START_Y+200+10+280), "MEDICAL.......... ",        BLUE)
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10+150,MAP_START_Y+200+10+280),str(crewmate.medical),        BLUE)
+#     pygame.draw.rect(screen, LIGHTGREY, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+280-1, 100, 12))
+#     pygame.draw.rect(screen, BLUE, pygame.Rect(MAP_START_X+10+10+175,MAP_START_Y+200+10+280-1, crewmate.medical, 12))
+
+
+
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10,MAP_START_Y+200+10+315), "Additional Skills: ",        WHITE)
+#     if len(crewmate.extraSkills) > 0:
+
+#         listSkills = ""
+#         for skill in crewmate.extraSkills:
+#             listSkills += skill
+#             if skill != crewmate.extraSkills[-1]:
+#                 listSkills += ", "
+#         listSkills += "."
+#         LIST_FONT.render_to(screen, (MAP_START_X+10+10+15,MAP_START_Y+200+10+330),listSkills.capitalize(),        WHITE)
+#     else: LIST_FONT.render_to(screen, (MAP_START_X+10+10+15,MAP_START_Y+200+10+330),"None",        LIGHTGREY)
+
+
+
+
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10,MAP_START_Y+200+10+360), "NOTES: ",        WHITE)
+#     displayTraits = ""
+#     traitColor = WHITE
+
+#     traitList = []
+#     traitList.extend(crewmate.goodTraits)
+#     traitList.extend(crewmate.badTraits)
+
+#     if len(traitList) >= 1:
+#         for trait in traitList:
+#             displayTraits += trait
+#             if trait != traitList[-1]:
+#                 displayTraits += ", "
+#             elif trait == traitList[-1]:
+#                 displayTraits += "."
+#         displayTraits = displayTraits.capitalize()
+#     else:
+#         displayTraits = "None"
+#         traitColor = LIGHTGREY
+        
+#     LIST_FONT.render_to(screen, (MAP_START_X+10+10+15,MAP_START_Y+200+10+375),displayTraits,traitColor)
+
+
+
+def showRoster():
+    global roster_selected_line
+
+    line         = 0
+    space        = 0
+    row          = 0
+    columnSpace  = 0
+    extracrewcount = 0 
+    showRosterTitle_surface = FONT24.render(": CREW ROSTER :", True, GREEN)
+    SCREEN.blit(showRosterTitle_surface, (CREW_ORIGIN_X, GRID_ORIGIN_Y - SQUARE_SIZE // 3))
+    pygame.draw.rect(SCREEN, GREEN, (GRID_ORIGIN_X - 1, GRID_ORIGIN_Y - 1, GRID_SIZE * SQUARE_SIZE + 2, GRID_SIZE * SQUARE_SIZE + 2), 2)
+
+    crewMuster = player.soulsOnBoard.sprites()
+    crewMuster.sort(key = getRankforSort, reverse = True)
+
+    for crewmate in crewMuster:
+        x_offset = 0
+        crewMateText = ""
+        if line == roster_selected_line:
+            highlighted_choice = crewmate
+            crewMateText = "--> "
+            x_offset = - 23
+        else:
+            pass
+
+        if line >= 30-1:
+            extracrewcount += 1
+        else:
+            crewMateText += crewmate.info()
+            if line == roster_selected_line:
+                highlighted_choice = crewmate
+                crewMateText += " <--"
+            crewMateText_surface = FONT24.render(crewMateText, True, crewmate.shirtColor)
+            SCREEN.blit(crewMateText_surface, (CREW_DETAIL_START_X+columnSpace+x_offset, 440+CREW_DETAIL_START_Y+space))
+            space += 15
+            row   += 1
+            if row >= 10:
+                row = 0
+                space = 0
+                columnSpace += 240
+        line  += 1
+
+
+    if line > 30: 
+        additional_crew_text = FONT24.render("  + " + str(extracrewcount) + " Additional Crew", True, GREEN)
+        screen.blit(additional_crew_text, (CREW_DETAIL_START_X+columnSpace, 440+CREW_DETAIL_START_Y+space))
+
+    # SHOW INDIVIDUAL CREW PORTFOLIO -------------------------------------------------------------------------
+
+    pygame.draw.rect(SCREEN, DARK_GREY, pygame.Rect(CREW_ORIGIN_X,CREW_ORIGIN_Y, CREW_BOX_SIZE_WIDTH, 425))
+    pygame.draw.rect(SCREEN, GREEN, pygame.Rect(CREW_ORIGIN_X,CREW_ORIGIN_Y, CREW_BOX_SIZE_WIDTH, 425),2)
+
+    pygame.draw.rect(SCREEN, DARK_GREY, pygame.Rect(CREW_ORIGIN_X+5,CREW_ORIGIN_Y+5, CREW_BOX_SIZE_WIDTH, 425))
+    pygame.draw.rect(SCREEN, GREEN, pygame.Rect(CREW_ORIGIN_X+5,CREW_ORIGIN_Y+5, CREW_BOX_SIZE_WIDTH, 425),2)
+
+    pygame.draw.rect(SCREEN, DARK_GREY, pygame.Rect(CREW_ORIGIN_X+10,CREW_ORIGIN_Y+10, CREW_BOX_SIZE_WIDTH, 425))
+    pygame.draw.rect(SCREEN, GREEN, pygame.Rect(CREW_ORIGIN_X+10,CREW_ORIGIN_Y+10, CREW_BOX_SIZE_WIDTH, 425),2)
+
+    crewmate = highlighted_choice
+    full_info_surface = FONT24.render(crewmate.fullInfo(), True, crewmate.shirtColor)
+    SCREEN.blit(full_info_surface, (CREW_DETAIL_START_X, CREW_DETAIL_START_Y))
+
+    serial_surface = FONT22.render("Serial # " + str(crewmate.getSerialNumber()), True, LIGHT_GREY)
+    SCREEN.blit(serial_surface, (CREW_DETAIL_START_X+335, CREW_DETAIL_START_Y+25))
+
+    species_surface = FONT22.render("SPECIES: " + crewmate.species, True, GREEN)
+    SCREEN.blit(species_surface, (CREW_DETAIL_START_X+335, CREW_DETAIL_START_Y+50))
+
+    homeworld_surface = FONT22.render("HOMEWORLD: " + crewmate.homeworld, True, GREEN)
+    SCREEN.blit(homeworld_surface, (CREW_DETAIL_START_X+335, CREW_DETAIL_START_Y+75))
+
+    join_date_surface = FONT22.render(
+        "Join Date: " + str(crewmate.getEnrollmentDate()) + "   -   XP: " + str(crewmate.xp), True, WHITE
+    )
+    SCREEN.blit(join_date_surface, (CREW_DETAIL_START_X+335, CREW_DETAIL_START_Y+100))
+
+    department_surface = FONT24.render("DEPARTMENT: " + crewmate.department, True, crewmate.shirtColor)
+    SCREEN.blit(department_surface, (CREW_DETAIL_START_X, CREW_DETAIL_START_Y+25))
+
+    stats = [
+        ("STRENGTH......... ", crewmate.strength, WHITE),
+        ("HEALTH........... ", crewmate.health, WHITE),
+        ("STAMINA.......... ", crewmate.stamina, WHITE),
+        ("BRAVERY.......... ", crewmate.bravery, WHITE),
+        ("REACTIONS........ ", crewmate.reactions, WHITE),
+        ("ACCURACY......... ", crewmate.accuracy, WHITE),
+        ("PSI-STRENGTH..... ", crewmate.psiStrength, PURPLE),
+        ("PSI-SKILL........ ", crewmate.psiSkill, PURPLE),
+        ("COMMAND.......... ", crewmate.command, RED),
+        ("PILOTING......... ", crewmate.piloting, RED),
+        ("ENGINEERING...... ", crewmate.engineering, GOLD),
+        ("TACTICAL......... ", crewmate.tactical, GOLD),
+        ("SECURITY......... ", crewmate.security, GOLD),
+        ("COMMUNICATIONS... ", crewmate.communications, RED),
+        ("PHYSICAL-SCIENCE..", crewmate.physicalScience, PURPLE),
+        ("BIO-SCIENCE.......", crewmate.bioScience, GREEN),
+        ("MEDICAL.......... ", crewmate.medical, BLUE),
+    ]
+
+    y_offset = 40
+    for label, value, color in stats:
+        label_surface = FONT24.render(label, True, color)
+        value_surface = FONT24.render(str(value), True, color)
+        SCREEN.blit(label_surface, (CREW_DETAIL_START_X, CREW_DETAIL_START_Y+y_offset))
+        SCREEN.blit(value_surface, (CREW_DETAIL_START_X+175, CREW_DETAIL_START_Y+y_offset))
+        pygame.draw.rect(
+            SCREEN, LIGHT_GREY, pygame.Rect(CREW_DETAIL_START_X+200, CREW_DETAIL_START_Y+y_offset, 120, 12)
+        )
+        pygame.draw.rect(
+            SCREEN, color, pygame.Rect(CREW_DETAIL_START_X+200, CREW_DETAIL_START_Y+y_offset, value, 12)
+        )
+        y_offset += 15
+
+    additional_skills_surface = FONT24.render("Additional Skills: ", True, WHITE)
+    SCREEN.blit(additional_skills_surface, (CREW_DETAIL_START_X, CREW_DETAIL_START_Y+315))
+
+    if len(crewmate.extraSkills) > 0:
+        listSkills = ", ".join(crewmate.extraSkills) + "."
+        listSkills_surface = FONT24.render(listSkills.capitalize(), True, WHITE)
+        SCREEN.blit(listSkills_surface, (CREW_DETAIL_START_X+15, CREW_DETAIL_START_Y+330))
+    else:
+        none_surface = FONT24.render("None", True, LIGHT_GREY)
+        SCREEN.blit(none_surface, (CREW_DETAIL_START_X+15, CREW_DETAIL_START_Y+330))
+
+    notes_surface = FONT24.render("NOTES: ", True, WHITE)
+    SCREEN.blit(notes_surface, (CREW_DETAIL_START_X, CREW_DETAIL_START_Y+360))
+
+    trait_list = crewmate.goodTraits + crewmate.badTraits
+    if trait_list:
+        displayTraits = ", ".join(trait_list).capitalize() + "."
+        display_traits_surface = FONT24.render(displayTraits, True, WHITE)
+    else:
+        display_traits_surface = FONT24.render("None", True, LIGHT_GREY)
+
+    SCREEN.blit(display_traits_surface, (CREW_DETAIL_START_X+15, CREW_DETAIL_START_Y+375))
 
 def prompt_phaser_power(screen):
     """Display a prompt for the player to enter phaser power."""
@@ -2775,20 +3728,23 @@ def display_computer_active_text():
 
 def draw_captain(overlay_images, key_pressed=False):
     # Define the size of the box
-    box_width = 55 * CAPTAIN_BOX_SCALE
-    box_height = 30 * CAPTAIN_BOX_SCALE
+    # box_width = 55 * CAPTAIN_BOX_SCALE
+    # box_height = 30 * CAPTAIN_BOX_SCALE
+
+    box_width  = CAPTAIN_BOX_WIDTH
+    box_height = CAPTAIN_BOX_HEIGHT
     
     # Calculate the position for the box (right of center at the bottom)
-    box_x = QUADRANT_ORIGIN_X - box_width - 50  # 10 pixels offset from the right edge
+    box_x = CAPTAIN_BOX_ORIGIN_X
+    # box_x = QUADRANT_ORIGIN_X - box_width - 50  # 10 pixels offset from the right edge
     box_y = SCREEN_HEIGHT - box_height - 25  # 10 pixels offset from the bottom edge
 
     # Draw the grey outline for the box
-    pygame.draw.rect(SCREEN, GREY, (box_x-2, box_y-2, box_width+4, box_height+4), 2)  # 2 is the outline thickness
+    pygame.draw.rect(SCREEN, GREEN, (box_x-2, box_y-2, box_width+4, box_height+4), 2)  # 2 is the outline thickness
 
-    BASE_IMAGE = pygame.transform.scale(CRUISER_CAPTAIN_000, (box_width, box_height))  # Scale to box size
-
+    
     # Draw the 'CRUISER_CAPTAIN_000' background image inside the box
-    SCREEN.blit(BASE_IMAGE, (box_x, box_y))
+    SCREEN.blit(CRUISER_CAPTAIN_000, (box_x, box_y))
 
     if key_pressed:
         # Select a few images randomly from the additional list
@@ -2802,7 +3758,8 @@ def draw_captain(overlay_images, key_pressed=False):
 
     # Draw the stored overlay images (even if key_pressed is False)
     for image, x_offset, y_offset in overlay_images:
-        overlay_image = pygame.transform.scale(image, (image.get_width()*CAPTAIN_BOX_SCALE, image.get_height()*CAPTAIN_BOX_SCALE))  # Scale to box size
+        # overlay_image = pygame.transform.scale(image, (image.get_width()*CAPTAIN_BOX_SCALE, image.get_height()*CAPTAIN_BOX_SCALE))  # Scale to box size
+        overlay_image = image
         x_offset, y_offset = abs(x_offset), abs(y_offset)
         SCREEN.blit(overlay_image, (box_x + x_offset*CAPTAIN_BOX_SCALE, box_y + y_offset*CAPTAIN_BOX_SCALE))
 
@@ -2837,11 +3794,17 @@ def main():
     global overlay_images
     global key_pressed
 
+    global showing_roster
+    global roster_selected_line
+
+    roster_selected_line = 0
+
     player = Player()
     projectile_group = pygame.sprite.Group() 
 
     current_index = SHIELD_LEVELS.index(player.shield_level)  # Find the current level's index
     players_turn = True
+    showing_roster = False
 
     # List to store overlay images and their offsets
     overlay_images = []
@@ -2862,7 +3825,7 @@ def main():
         player.check_hull_and_crew(delta_time)
 
         # Example condition to stop the game loop (modify as needed)
-        if player.crew <= 0:
+        if player.crewQty <= 0:
             ...
             # running = False
 
@@ -2879,7 +3842,7 @@ def main():
 
             elif event.type == pygame.KEYDOWN:  # Check for key presses
 
-                if players_turn and (len(projectile_group) ==0) :
+                if players_turn and (len(projectile_group) ==0) and not showing_roster:
 
                     
                     
@@ -2922,7 +3885,13 @@ def main():
                         # player.shields_toggle()
                         if not player.docked: prompt_shields_transfer(SCREEN)
 
-
+                    elif event.key == pygame.K_c:
+                        if not showing_roster:
+                            print("toggle roster on ")
+                            key_pressed = False
+                            showing_roster = True
+                            # prompt_crew_roster(showing_roster)
+                            roster_selected_line = 0
 
 
 
@@ -2973,12 +3942,16 @@ def main():
                                     player.shields = 0
 
 
+                    
 
 
                     if key_pressed and (player.turn != 0):#### ENEMY TURN ??
                         for enemy in player.current_quadrant.enemies:
                             if enemy.trigger_update_time is None:
                                 enemy.trigger_update(players_turn)
+
+                while showing_roster:
+                    prompt_crew_roster()
 
                     
                 player.turn += 1
@@ -2995,7 +3968,7 @@ def main():
 
         ### DRAW EVERYTHING #################################################################################################
         SCREEN.fill(BLACK)
-
+        
         display_computer_active_text()
 
         draw_alert_info(SCREEN)
