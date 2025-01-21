@@ -298,6 +298,8 @@ pygame.mixer.set_num_channels(16)
 ALARM_CHANNEL = pygame.mixer.Channel(1)
 RED_ALERT = pygame.mixer.Sound("alarm01.mp3")
 POWER_UP = pygame.mixer.Sound("power_up2_clean.mp3")
+NEXT_LINE   = pygame.mixer.Sound("menusnd01.wav")
+NEXT_LINE.set_volume(.30)
 
 
 WEAPON_CHANNEL = pygame.mixer.Channel(2)
@@ -543,7 +545,7 @@ class Player(pygame.sprite.Sprite):
     def check_hull_and_crew(self, delta_time):
         """Check if the player's hull is below 0 and potentially kill crew members."""
 
-        self.soulsOnBoard.update()
+        self.soulsOnBoard.update(self)
         self.crewQty = len(self.soulsOnBoard)
 
         if self.hull <= 0:
@@ -600,7 +602,7 @@ class Player(pygame.sprite.Sprite):
         self.rect.topleft = (player_draw_x, player_draw_y)
 
 
-        self.soulsOnBoard.update()
+        self.soulsOnBoard.update(self)
         self.crewQty = len(self.soulsOnBoard)
 
 
@@ -841,6 +843,9 @@ class Player(pygame.sprite.Sprite):
                             explosion = Explosion(enemy_position, max_size=SQUARE_SIZE, start_size=5, growth_rate=2)
                             projectile_group.add(explosion)
 
+                            for crewman in player.soulsOnBoard:
+                                crewman.xp += random.randint(0,5)
+
 
                             enemy.die()
 
@@ -937,7 +942,7 @@ class Player(pygame.sprite.Sprite):
         warp_factor = prompt_warp_factor(SCREEN)
 
         if warp_factor > 0:
-            self.stardate += (1 * warp_factor)
+            self.stardate += (.1 * warp_factor)
 
 
             """Display a compass guide showing the warp direction numbers."""
@@ -1043,7 +1048,7 @@ class Player(pygame.sprite.Sprite):
 
         self.energy -= abs(dx)
         self.energy -= abs(dy)
-        self.stardate += (1 * 0.95)
+        self.stardate += (.1 * 0.95)
 
         if dx == 0 and dy == 0:
             print("Resting for Repairs...")
@@ -1344,6 +1349,9 @@ class Torpedo(pygame.sprite.Sprite):
             # player.current_quadrant.enemies.remove(enemy)
             self.explode(enemy.grid_x, enemy.grid_y, max_size=SQUARE_SIZE, start_size=5, growth_rate=2)
             EXPLOSION_CHANNEL.play(SHIP_DEATH_SOUND)
+
+            for crewman in player.soulsOnBoard:
+                crewman.xp += random.randint(0,5)
 
             # Check if all enemies are destroyed, and play victory sound
             if len(player.current_quadrant.enemies) == 0:
@@ -2139,16 +2147,17 @@ class Crewman(pygame.sprite.Sprite):
 
         return text
 
-    def update(self):
+    def update(self,player):
         ...
 
         if self.species == "Android": # NO XP FOR ROBOTS 
             self.xp = 0
 
-        # if player.stardate > self.lastDayOfShoreLeave+1:
-        #     if player.stardate > self.yesterday:
-        #         self.yesterday = player.stardate
-        #         self.xp += 1
+
+        if player.stardate > self.lastDayOfShoreLeave+1:
+            if player.stardate > self.yesterday:
+                self.yesterday = player.stardate
+                self.xp += .1
 
         # if player.orbitingSubPlanet != None:
         #     if type(player.orbitingSubPlanet) is Starbase:
@@ -2865,14 +2874,15 @@ def prompt_crew_roster():
                 print("toggle roster off")
                 key_pressed = False
                 showing_roster = False
+                ALARM_CHANNEL.play(NEXT_LINE)
             if event.key == pygame.K_UP:
 
                 if len(player.soulsOnBoard) > 0:
                     if roster_selected_line != 0:
                         roster_selected_line -= 1
-                        # next_line.play()
+                        ALARM_CHANNEL.play(NEXT_LINE)
                     else:
-                        # next_line.play()
+                        ALARM_CHANNEL.play(NEXT_LINE)
                         roster_selected_line = len(player.soulsOnBoard)-1
 
                 else: no.play()
@@ -2881,13 +2891,13 @@ def prompt_crew_roster():
                 if len(player.soulsOnBoard) > 0:
                     if roster_selected_line < (len(player.soulsOnBoard)-1):
                         roster_selected_line += 1
-                        # next_line.play()
+                        ALARM_CHANNEL.play(NEXT_LINE)
                     else:
-                        #next_line.play()
+                        ALARM_CHANNEL.play(NEXT_LINE)
                         roster_selected_line = 0
                 else: ... #no.play()
 
-    print("show roster")
+    # print("show roster")
     SCREEN.fill(BLACK)
 
 
@@ -3177,7 +3187,7 @@ def showRoster():
     SCREEN.blit(homeworld_surface, (CREW_DETAIL_START_X+335, CREW_DETAIL_START_Y+75))
 
     join_date_surface = FONT22.render(
-        "Join Date: " + str(crewmate.getEnrollmentDate()) + "   -   XP: " + str(crewmate.xp), True, WHITE
+        "Join Date: " + str(crewmate.getEnrollmentDate()) + "   -   XP: " + str(round(crewmate.xp)), True, WHITE
     )
     SCREEN.blit(join_date_surface, (CREW_DETAIL_START_X+335, CREW_DETAIL_START_Y+100))
 
@@ -3265,6 +3275,7 @@ def prompt_phaser_power(screen):
                 pygame.quit()
                 exit()
             elif event.type == pygame.KEYDOWN:
+                ALARM_CHANNEL.play(NEXT_LINE)
                 if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:  # Confirm input
                     if input_text.isdigit():
                         power = int(input_text)
@@ -3327,6 +3338,7 @@ def prompt_warp_factor(screen):
                 pygame.quit()
                 exit()
             elif event.type == pygame.KEYDOWN:
+                ALARM_CHANNEL.play(NEXT_LINE)
                 if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:  # Confirm input
                     if input_text.isdigit():
                         factor = int(input_text)
@@ -3367,6 +3379,7 @@ def prompt_direction(screen,prompt_text):
                 pygame.quit()
                 exit()
             elif event.type == pygame.KEYDOWN:
+                ALARM_CHANNEL.play(NEXT_LINE)
                 if event.key == pygame.K_UP:
                     direction = "N"
                 elif event.key == pygame.K_DOWN:
@@ -3425,6 +3438,7 @@ def prompt_sector_target(screen, prompt_text):
                 pygame.quit()
                 exit()
             elif event.type == pygame.KEYDOWN:
+                ALARM_CHANNEL.play(NEXT_LINE)
                 if event.key == pygame.K_RETURN:  # Enter key to submit
                     try:
                         target = tuple(map(int, input_text.split(",")))
@@ -3647,6 +3661,7 @@ def prompt_numeric_input(prompt_text, min_value, max_value, compass=False):
                 exit()
 
             elif event.type == pygame.KEYDOWN:
+                ALARM_CHANNEL.play(NEXT_LINE)
                 if event.key == pygame.K_BACKSPACE:
                     # Remove the last character
                     input_text = input_text[:-1]
@@ -3869,21 +3884,38 @@ def main():
                         key_pressed = True
 
                     elif event.key == pygame.K_p:
-                        if not player.docked: player.fire_phasers()
+
+                        if not player.docked: 
+                            ALARM_CHANNEL.play(NEXT_LINE)
+                            player.fire_phasers()
+                            
                         key_pressed = True
+
 
                     elif event.key == pygame.K_t:
-                        if not player.docked: player.fire_torpedo()
+                        
+                        if not player.docked: 
+                            ALARM_CHANNEL.play(NEXT_LINE)
+                            player.fire_torpedo()
+                            
                         key_pressed = True
+                        
 
                     elif event.key == pygame.K_w:
-                        if not player.docked: player.activate_warp()
+                        ALARM_CHANNEL.play(NEXT_LINE)
+                        if not player.docked:
+                            player.activate_warp()
+                            ALARM_CHANNEL.play(NEXT_LINE)
                         key_pressed = False
+                        
 
                     elif event.key == pygame.K_s:
                         key_pressed = False
                         # player.shields_toggle()
-                        if not player.docked: prompt_shields_transfer(SCREEN)
+
+                        if not player.docked: 
+                            prompt_shields_transfer(SCREEN)
+                            ALARM_CHANNEL.play(NEXT_LINE)
 
                     elif event.key == pygame.K_c:
                         if not showing_roster:
@@ -3892,6 +3924,7 @@ def main():
                             showing_roster = True
                             # prompt_crew_roster(showing_roster)
                             roster_selected_line = 0
+                            ALARM_CHANNEL.play(NEXT_LINE)
 
 
 
