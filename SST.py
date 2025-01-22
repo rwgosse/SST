@@ -84,7 +84,8 @@ DARK_GREEN =(0,50,0)
 BLUE = (0, 0, 255)
 LIGHT_BLUE = (35,35,255)
 DARK_BLUE = (0, 0, 128)
-PURPLE     = (139,0,139) # Mageneta technically speaking
+DARK_PURPLE     = (139,0,139) # Mageneta technically speaking
+PURPLE = (255,0,255) 
 
 # Define the shades from WHITE to BLACK
 SHADE_COLOR_CYCLE = [WHITE, WHITE, OFF_WHITE, OFF_WHITE,LIGHT_GREY, GREY, MIDDLE_GREY, DARK_GREY, NEAR_BLACK, DARK_GREY, MIDDLE_GREY,GREY, LIGHT_GREY,OFF_WHITE,OFF_WHITE,WHITE,WHITE]
@@ -119,7 +120,10 @@ NEGATIVE_CHARACTER_TRAITS = ["rebellious","ignores, rejects what’s given","dis
 EXTRA_SKILL_LIST = ["Animal Handling","Architecture","Artist","Bioengineering","Code-Breaking","Computer Hacking","Computer-Programming","Diplomacy","Electronics Operation","Expert Skill","Explosives","Forgery","Gambling","Hidden Lore","History","Intelligence Analysis","Interrogation","Law","Leadership","Logistics","Mathematics","Meditation","Melee-Combat","Merchant","Mimicry","Observation","Photography","Politics","Ranged-Combat","Smuggling","Spacer","Stealth","Survival","Traps","Weird Science"]
 
 
+
+
 MAX_NUM_OF_BASES = 5
+MAX_NUM_OF_PLANETS_PER = 2 
 MAX_ENERGY = 3000
 BASE_RELOAD_ENERGY = 3000
 WARP_ENERGY_PER = 100
@@ -159,6 +163,16 @@ BASE_IMAGE = pygame.transform.scale(BASE_IMAGE, (SQUARE_SIZE*.75, SQUARE_SIZE*.7
 
 AVENGER_SHIP = pygame.image.load("avenger.png").convert_alpha() 
 INTRUDER_SHIP = pygame.image.load("intruder.png").convert_alpha() 
+DREADNAUGHT_SHIP = pygame.image.load("urq.png").convert_alpha() 
+
+# Define a list of possible enemies with their respective images
+ENEMY_SHIP_LIST = [
+    ("INTRUDER", INTRUDER_SHIP),
+    ("AVENGER", AVENGER_SHIP),
+    ("DREADNAUGHT", DREADNAUGHT_SHIP)
+]
+
+WORMHOLE_IMAGE = pygame.image.load("wormhole.png").convert_alpha()  
 
 GRID_BACKGROUND = pygame.image.load("starfield.png").convert_alpha()
 GRID_BACKGROUND = pygame.transform.scale(GRID_BACKGROUND, (GRID_SIZE * SQUARE_SIZE, GRID_SIZE * SQUARE_SIZE)) 
@@ -316,6 +330,7 @@ SHIP_DEATH_SOUND = pygame.mixer.Sound("shipdies.wav")
 MEDIUM_EXPLOSION = pygame.mixer.Sound("boom-medium.wav")
 WARP_SOUND = pygame.mixer.Sound("tng_slowwarp_clean.mp3")
 HURT = pygame.mixer.Sound("land_hrt.wav") 
+PORTAL = pygame.mixer.Sound("portal.wav")
 
 MUSIC_CHANNEL = pygame.mixer.Channel(4)
 MUSIC_CHANNEL.set_volume(.30)
@@ -381,6 +396,8 @@ class Player(pygame.sprite.Sprite):
         while (len(self.soulsOnBoard) < self.crewMax):
             self.addCrewman(random.choice(ALLIED_SPECIES_LIST))
         self.crewQty             = len(self.soulsOnBoard)
+        self.landers             = 2
+
 
         self.num_enemies = 0
         self.num_starbases = 0
@@ -443,7 +460,7 @@ class Player(pygame.sprite.Sprite):
             if (self.quadrant_x == sector.quadrant_x) and (self.quadrant_y == sector.quadrant_y):
 
                 # Ensure player's starting position isn't on a star or base
-                while (sector.is_star_at(self.grid_x, self.grid_y)) or (sector.is_base_at(self.grid_x, self.grid_y)) or (sector.is_enemy_at(self.grid_x, self.grid_y)) or (sector.is_planet_at(self.grid_x, self.grid_y)):
+                while (sector.is_star_at(self.grid_x, self.grid_y)) or (sector.is_base_at(self.grid_x, self.grid_y)) or (sector.is_enemy_at(self.grid_x, self.grid_y)) or (sector.is_planet_at(self.grid_x, self.grid_y)) or (sector.is_wormhole_at(self.grid_x, self.grid_y)):
                     self.move_away_from_star_or_base(sector)
 
                 if sector != self.current_quadrant: #ENTERING A NEW SECTOR
@@ -484,10 +501,11 @@ class Player(pygame.sprite.Sprite):
                 if not sector.is_base_at(nx, ny):
                     if not sector.is_enemy_at(nx, ny):
                         if not sector.is_planet_at(nx, ny):
-                            self.grid_x, self.grid_y = nx, ny
-                            self.update_position()
-                            print("Evasive!")
-                            return
+                            if not sector.is_wormhole_at(nx, ny):
+                                self.grid_x, self.grid_y = nx, ny
+                                self.update_position()
+                                print("Evasive!")
+                                return
         
         print(f"Warning: No valid adjacent square found for the player. Staying at ({self.grid_x}, {self.grid_y}).")
 
@@ -787,6 +805,7 @@ class Player(pygame.sprite.Sprite):
         """Fire phasers and damage enemies in the current sector, with a delay for each phaser blast."""
         phaser_power = prompt_phaser_power(SCREEN)
         num_enemy = self.current_quadrant.count_enemies()
+        print("Firing Phasors @: " + str(num_enemy) + " Targets.")
 
         if phaser_power > 0:
             if phaser_power <= self.energy:
@@ -860,10 +879,20 @@ class Player(pygame.sprite.Sprite):
                             self.explode(enemy.grid_x, enemy.grid_y, max_size=SQUARE_SIZE //4 , start_size=1, growth_rate=2)
 
                     # Schedule each phaser blast with a delay
-                    for i, enemy in enumerate(self.current_quadrant.enemies):
-                        delay = i * 0.25  # 0.3 seconds between each phaser blast
-                        threading.Timer(delay, fire_single_phaser, args=(enemy,)).start()
+                    # for i, enemy in enumerate(self.current_quadrant.enemies):
+                    #     print(" Phasor Target " + str(i))
+                    #     delay = i * 0.25  # 0.3 seconds between each phaser blast
+                    #     threading.Timer(delay, fire_single_phaser, args=(enemy,)).start()
 
+
+                    # Schedule each phaser blast with a delay
+                    # Use a copy of the enemies list to avoid index issues when modifying the list
+                    enemies_copy = self.current_quadrant.enemies[:]
+
+                    for i, enemy in enumerate(enemies_copy):  # Iterate over a copy
+                        print("Phasor Target " + str(i))
+                        delay = i * 0.25  # 0.25 seconds between each phaser blast
+                        threading.Timer(delay, fire_single_phaser, args=(enemy,)).start()
 
 
 
@@ -1027,11 +1056,50 @@ class Player(pygame.sprite.Sprite):
             self.update_position()
 
 
+    def check_if_entered_hole(self, new_x, new_y):
+        # Check if the player enters a wormhole
+        for wormhole in self.current_quadrant.wormholes:
+            if new_x == wormhole.grid_x and new_y == wormhole.grid_y:
+                print(f"Player entered wormhole at ({new_x}, {new_y})!")
 
+                # Find a different quadrant with a wormhole
+                possible_quadrants = []
+
+                for sector in self.all_sectors:
+                    if sector != self.current_quadrant:
+                        if sector.count_wormholes() > 0:
+                            possible_quadrants.append(sector)
+                
+
+                if possible_quadrants:
+                    # Randomly choose a new quadrant with a wormhole
+                    new_quadrant = random.choice(possible_quadrants)
+                    new_wormhole = random.choice(new_quadrant.wormholes)
+
+                    # Teleport the player to a position adjacent to the new wormhole
+                    self.grid_x = max(0, min(new_wormhole.grid_x + random.choice([-1, 1]), GRID_SIZE - 1))
+                    self.grid_y = max(0, min(new_wormhole.grid_y + random.choice([-1, 1]), GRID_SIZE - 1))
+                    
+                    self.quadrant_x = new_quadrant.quadrant_x
+                    self.quadrant_y = new_quadrant.quadrant_y
+                    self.current_quadrant = self.enter_sector(self.quadrant_x, self.quadrant_y)
+                    print(f"Player teleported to Quadrant ({new_quadrant.quadrant_x}, {new_quadrant.quadrant_y}) at ({self.grid_x}, {self.grid_y}).")
+                    EXPLOSION_CHANNEL.play(PORTAL)
+                    # break
+                    self.update_position()
+                    return True
+                else:
+                    self.grid_x = max(0, min(new_x + random.choice([-1, 1]), GRID_SIZE - 1))
+                    self.grid_y = max(0, min(new_y + random.choice([-1, 1]), GRID_SIZE - 1))
+                    print("No other wormhole found in the galaxy!")
+                    EXPLOSION_CHANNEL.play(PORTAL)
+                    return False
 
     def move(self, dx, dy):
         """Move the player in the grid, ensuring it stays within bounds and handles quadrant transitions."""
         # Check if the player will move out of the current sector (grid bounds)
+
+        # ALARM_CHANNEL.play(NEXT_LINE)
 
         if player.docked : 
             player.toggle_dock((self.grid_x,self.grid_y))
@@ -1046,6 +1114,7 @@ class Player(pygame.sprite.Sprite):
         new_x = self.grid_x + dx
         new_y = self.grid_y + dy
 
+
         self.energy -= abs(dx)
         self.energy -= abs(dy)
         self.stardate += (.1 * 0.95)
@@ -1054,6 +1123,22 @@ class Player(pygame.sprite.Sprite):
             print("Resting for Repairs...")
             self.energy += 1
             self.hull += 1
+
+
+        # Update last_move_direction and rotate/flip the sprite (same as before)
+        if dx == -1:
+            self.last_move_direction = "left"
+            self.image = pygame.transform.rotate(self.orig_image, 90)
+        elif dx == 1:
+            self.last_move_direction = "right"
+            self.image = pygame.transform.rotate(self.orig_image, -90)
+        elif dy == -1:
+            self.last_move_direction = "up"
+            self.image = self.orig_image
+        elif dy == 1:
+            self.last_move_direction = "down"
+            self.image = pygame.transform.flip(self.orig_image, False, True)
+
 
         # If within bounds, check if the new position is blocked by a star
         if 0 <= new_x < GRID_SIZE and 0 <= new_y < GRID_SIZE:
@@ -1074,6 +1159,10 @@ class Player(pygame.sprite.Sprite):
             if self.current_quadrant.is_planet_at(new_x, new_y):
                 print("Movement blocked by an planet!")
                 return  # Don't move if there's a star in the way
+
+            # Check if the player enters a wormhole
+            if self.check_if_entered_hole(new_x, new_y):
+                return
 
             # Update position if no star is blocking
             self.grid_x = new_x
@@ -1141,19 +1230,7 @@ class Player(pygame.sprite.Sprite):
             
             self.update_position()
 
-        # Update last_move_direction and rotate/flip the sprite (same as before)
-        if dx == -1:
-            self.last_move_direction = "left"
-            self.image = pygame.transform.rotate(self.orig_image, 90)
-        elif dx == 1:
-            self.last_move_direction = "right"
-            self.image = pygame.transform.rotate(self.orig_image, -90)
-        elif dy == -1:
-            self.last_move_direction = "up"
-            self.image = self.orig_image
-        elif dy == 1:
-            self.last_move_direction = "down"
-            self.image = pygame.transform.flip(self.orig_image, False, True)
+        
 
 #### end player class
 
@@ -1315,13 +1392,13 @@ class Torpedo(pygame.sprite.Sprite):
 
         self.miss_chance += MISS_CHANCE_INCREASE_PER
 
-    def explode(self, x, y, max_size, start_size, growth_rate):
+    def explode(self, x, y, max_size, start_size, growth_rate, explosion_sound=MEDIUM_EXPLOSION):
         """Handle explosion visuals and sound."""
         explosion_x = GRID_ORIGIN_X + x * SQUARE_SIZE + SQUARE_SIZE // 2
         explosion_y = GRID_ORIGIN_Y + y * SQUARE_SIZE + SQUARE_SIZE // 2
         explosion = Explosion((explosion_x, explosion_y), max_size, start_size, growth_rate)
         projectile_group.add(explosion)
-        EXPLOSION_CHANNEL.play(MEDIUM_EXPLOSION)
+        EXPLOSION_CHANNEL.play(explosion_sound)
         self.kill()
         projectile_group.remove(self)
 
@@ -1342,13 +1419,14 @@ class Torpedo(pygame.sprite.Sprite):
         
         print(f"     {enemy.name} Shields: {shields_before} -> {enemy.shields}")
         print(f"     {enemy.name} Hull: {hull_before} -> {enemy.hull}")
+        EXPLOSION_CHANNEL.play(MEDIUM_EXPLOSION)
 
         if enemy.hull <= 0:
             print(f"     {enemy.name} Destroyed!")
             enemy.die()
             # player.current_quadrant.enemies.remove(enemy)
-            self.explode(enemy.grid_x, enemy.grid_y, max_size=SQUARE_SIZE, start_size=5, growth_rate=2)
-            EXPLOSION_CHANNEL.play(SHIP_DEATH_SOUND)
+            self.explode(enemy.grid_x, enemy.grid_y, max_size=SQUARE_SIZE, start_size=5, growth_rate=2,explosion_sound=SHIP_DEATH_SOUND)
+            # EXPLOSION_CHANNEL.play(SHIP_DEATH_SOUND)
 
             for crewman in player.soulsOnBoard:
                 crewman.xp += random.randint(0,5)
@@ -1359,6 +1437,10 @@ class Torpedo(pygame.sprite.Sprite):
 
                 # Re-enter the sector to ensure state consistency
                 player.enter_sector(player.quadrant_x, player.quadrant_y)
+
+        else: # ENEMY SURVIVED
+            ...
+            # EXPLOSION_CHANNEL.play(MEDIUM_EXPLOSION)
 
     def draw(self, screen):
         """Draw the torpedo."""
@@ -1407,6 +1489,48 @@ class Base(pygame.sprite.Sprite):
         self.shields = 0
         self.hull = 0
 
+class Wormhole(pygame.sprite.Sprite):
+    def __init__(self, grid_x, grid_y):
+        super().__init__()
+
+        self.name = "WORMHOLE"
+        self.grid_x = grid_x
+        self.grid_y = grid_y
+
+        self.orig_image = WORMHOLE_IMAGE
+        self.orig_image = pygame.transform.scale(self.orig_image, (SQUARE_SIZE+10, SQUARE_SIZE+10))
+        self.image = self.orig_image
+
+        # self.rect = self.image.get_rect()  # Set the rect for positioning
+        # self.rect.topleft = (grid_x * TILE_SIZE, grid_y * TILE_SIZE)  # Position on the grid
+
+
+        self.shields = 0
+        self.hull = 0
+
+        self.rotation_angle = 0  # Current rotation angle
+        self.last_update_time = pygame.time.get_ticks()  # Time tracker for rotation
+
+    def update(self):
+        """Rotate the wormhole image by 90 degrees every second."""
+        # Get the current time
+        current_time = pygame.time.get_ticks()
+
+        # Check if 1 second (1000 milliseconds) has passed
+        if current_time - self.last_update_time >= 500:
+            # Update the last update time
+            self.last_update_time = current_time
+
+            # Increment the rotation angle by 90 degrees
+            self.rotation_angle = (self.rotation_angle - 45) % 360
+
+            # Rotate the original image and update the current image
+            self.image = pygame.transform.rotate(self.orig_image, self.rotation_angle)
+
+            # # Update the rect to keep it centered
+            # self.rect = self.image.get_rect(center=self.rect.center)
+
+
 ### ENEMY CLASS ####
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, grid_x, grid_y, name="INTRUDER", image=INTRUDER_SHIP):
@@ -1434,6 +1558,7 @@ class Enemy(pygame.sprite.Sprite):
             self.hull = random.randint(50, 100)
             self.min_phasor = 100
             self.max_phasor = 250
+            self.speed = 1
 
         elif self.name == "AVENGER":
             self.energy = random.randint(800 , 1600)
@@ -1441,8 +1566,17 @@ class Enemy(pygame.sprite.Sprite):
             self.hull = random.randint(150, 200)
             self.min_phasor = 200
             self.max_phasor = 450
+            self.speed = 1
 
-        self.speed = 2
+        elif self.name == "DREADNAUGHT":
+            self.energy = random.randint(1200 , 2000)
+            self.shields = random.randint(250, 500)
+            self.hull = random.randint(400, 800)
+            self.min_phasor = 300
+            self.max_phasor = 600
+            self.speed = 2
+
+        
 
         # Timer to trigger movement after player action
         self.trigger_update_time = None
@@ -1547,16 +1681,12 @@ class Enemy(pygame.sprite.Sprite):
         if self.trigger_update_time is not None:
             current_time = pygame.time.get_ticks()
             if current_time - self.trigger_update_time >= self.response_delay:
-                
-                
 
                 if len(projectile_group) == 0:
                     self.trigger_update_time = None  # Reset trigger
 
                     if not players_turn:
                         players_turn = True
-
-                    
 
                     if random.random() < .50:  # 20% chance to move
                         adjacent_positions = self.get_adjacent_positions()
@@ -1626,6 +1756,10 @@ class Enemy(pygame.sprite.Sprite):
 
         # Check if the position contains a starbase
         if player.current_quadrant.is_planet_at(x, y):
+            return False
+
+        # Check if the position contains a wormhole
+        if player.current_quadrant.is_wormhole_at(x, y):
             return False
 
         # Otherwise, the position is valid
@@ -1740,6 +1874,7 @@ class Sector:
         self.bases = []  # List of base objects
         self.enemies = []  # List of enemy objects
         self.planets = []  # List of planet objects
+        self.wormholes = [] # list of wormhole objects
 
         self.visited = False
         self.last_star_count = 0
@@ -1760,22 +1895,28 @@ class Sector:
         # Check for enemies
         if any(enemy.grid_x == x and enemy.grid_y == y for enemy in self.enemies):
             return True
+
+        # Check for wormholes
+        if any(wormhole.grid_x == x and wormhole.grid_y == y for wormhole in self.wormholes):
+            return True
+
         return False
 
     def generate(self, player, player_x, player_y):
-        """Generate stars, planets, bases, and enemies for the sector."""
+        """Generate stars, planets, bases, enemies, and potentially wormholes for the sector."""
         # Create a weighted list for the number of stars
         weighted_numbers = [1, 7, 8, 9] + [2, 3, 4, 5, 6] * 4
         num_stars = random.choice(weighted_numbers)
 
         # Randomly place stars or planets
         max_attempts = 100  # Prevent infinite loops
+
         while len(self.stars) + len(self.planets) < num_stars:
             for _ in range(max_attempts):
                 obj_x = random.randint(0, GRID_SIZE - 1)
                 obj_y = random.randint(0, GRID_SIZE - 1)
                 if (obj_x, obj_y) != (player_x, player_y) and not self.is_position_occupied(obj_x, obj_y):
-                    if random.random() < 0.2:  # 10% chance to create a planet
+                    if (random.random() < 0.2) and (len(self.planets) < MAX_NUM_OF_PLANETS_PER):  # 20% chance to create a planet
                         new_planet = Planet(obj_x, obj_y, self.quadrant_x, self.quadrant_y)
                         self.planets.append(new_planet)
                     else:  # Otherwise, add a star
@@ -1784,6 +1925,17 @@ class Sector:
             else:
                 print("Max attempts reached while placing stars/planets.")
                 break
+
+        # Ensure there's at least one star
+        if len(self.stars) == 0:
+            for _ in range(max_attempts):
+                star_x = random.randint(0, GRID_SIZE - 1)
+                star_y = random.randint(0, GRID_SIZE - 1)
+                if (star_x, star_y) != (player_x, player_y) and not self.is_position_occupied(star_x, star_y):
+                    self.stars.append((star_x, star_y))
+                    break
+            else:
+                print("Max attempts reached while placing the mandatory star.")
 
         # Assign names to planets
         for i, planet in enumerate(self.planets):
@@ -1804,27 +1956,34 @@ class Sector:
 
         # Place enemies
         if random.random() < 0.25:  # 25% chance of enemies
+            # Randomly select an enemy
+            enemy_name, enemy_image = random.choice(ENEMY_SHIP_LIST)
             num_of_enemies = random.randint(1, 4)
-
-            
-            enemy_name = "INTRUDER"
-            enemy_image = INTRUDER_SHIP
-
-            if random.random() < .5:
-                enemy_name = "AVENGER"
-                enemy_image = AVENGER_SHIP
-
-
             for _ in range(num_of_enemies):
                 for _ in range(max_attempts):
                     enemy_x = random.randint(0, GRID_SIZE - 1)
                     enemy_y = random.randint(0, GRID_SIZE - 1)
                     if (enemy_x, enemy_y) != (player_x, player_y) and not self.is_position_occupied(enemy_x, enemy_y):
-                        new_enemy = Enemy(enemy_x, enemy_y,enemy_name,enemy_image)
+                        new_enemy = Enemy(enemy_x, enemy_y, enemy_name, enemy_image)
                         self.enemies.append(new_enemy)
                         break
                 else:
                     print("Max attempts reached while placing enemies.")
+
+        # Place wormholes
+        wormhole_count_ttl = sum(sector.count_wormholes() for sector in player.all_sectors)  # Total wormholes across all sectors
+        if wormhole_count_ttl < 4 and random.random() < 0.05:  # 5% chance to create a wormhole
+            for _ in range(max_attempts):
+                wormhole_x = random.randint(0, GRID_SIZE - 1)
+                wormhole_y = random.randint(0, GRID_SIZE - 1)
+                if (wormhole_x, wormhole_y) != (player_x, player_y) and not self.is_position_occupied(wormhole_x, wormhole_y):
+                    new_wormhole = Wormhole(wormhole_x, wormhole_y)
+                    self.wormholes.append(new_wormhole)
+                    break
+            else:
+                print("Max attempts reached while placing wormholes.")
+
+
 
 
     
@@ -1840,6 +1999,10 @@ class Sector:
     def count_stars(self):
         """Count the number of stars in the sector."""
         return len(self.stars)
+
+    def count_wormholes(self):
+        """Count the number of stars in the wormholes."""
+        return len(self.wormholes)
     
     def is_base_at(self, x, y):
         """Check if there is a base at the given coordinates."""
@@ -1863,6 +2026,13 @@ class Sector:
         for planet in self.planets:  # Assuming `self.planets` is a list of Planet objects
             if planet.grid_x == x and planet.grid_y == y:
                 return planet  # Return the Planet object
+        return None  # Return None if no planet is found
+
+    def is_wormhole_at(self, x, y):
+
+        for wormhole in self.wormholes:  # Assuming `self.planets` is a list of Planet objects
+            if wormhole.grid_x == x and wormhole.grid_y == y:
+                return wormhole  # Return the Planet object
         return None  # Return None if no planet is found
 
 
@@ -2043,7 +2213,7 @@ class Crewman(pygame.sprite.Sprite):
             self.badTraits.append(random.choice(NEGATIVE_CHARACTER_TRAITS))
 
     def getEnrollmentDate(self):
-        return self.enrollmentDate
+        return round(self.enrollmentDate,2)
 
     def getSerialNumber(self):
         return '{0:05d}'.format(self.serialNumber)
@@ -2309,6 +2479,34 @@ def draw_sector_map():
                     else:
                         player.condition = "RED"
 
+
+            # Check for wormholes
+            elif player.current_quadrant.is_wormhole_at(col, row):
+                this_hole = player.current_quadrant.is_wormhole_at(col, row)
+                this_hole.update()
+                base_screen_x = GRID_ORIGIN_X + (col * SQUARE_SIZE)
+                base_screen_y = GRID_ORIGIN_Y + (row * SQUARE_SIZE)
+                offset_x = (SQUARE_SIZE - this_hole.image.get_width()) // 2
+                offset_y = (SQUARE_SIZE - this_hole.image.get_height()) // 2
+
+
+                SCREEN.blit(this_hole.image, (base_screen_x + offset_x, base_screen_y + offset_y))
+                # pygame.draw.rect(SCREEN, BLUE, rect, 1)  # Blue grid line for bases
+
+                # # Check docking range
+                # distance = abs(math.sqrt((player.grid_x - col) ** 2 + (player.grid_y - row) ** 2))
+                # if distance <= 1:
+                #     if player.current_quadrant.count_enemies() <= 0:
+                #         player.condition = "GREEN"
+                #         player.update_position()
+                #         player.inDockingRange = (col, row)
+
+                #         if player.docked:
+                #             player.condition = "BLUE"
+                #     else:
+                #         player.condition = "RED"
+
+
            # Check for enemies
             elif player.current_quadrant.is_enemy_at(col, row):
                 this_enemy = player.current_quadrant.is_enemy_at(col, row)
@@ -2412,6 +2610,12 @@ def draw_reports():
     draw_report_line("TORPEDOS:", str(player.torpedo_qty), report_pos_y)
     report_pos_y += FONT24.get_height()
 
+    draw_report_line("SHUTTLECRAFT:", str(player.landers), report_pos_y)
+    report_pos_y += FONT24.get_height()
+
+    draw_report_line("------------------------------", f"-------------", report_pos_y)
+    report_pos_y += FONT24.get_height()
+
     draw_report_line("ENERGY:", str(round(player.energy)), report_pos_y)
     report_pos_y += FONT24.get_height()
 
@@ -2435,7 +2639,7 @@ def draw_reports():
     draw_report_line("HULL STRENGTH:", str(round(player.hull)), report_pos_y)
     report_pos_y += FONT24.get_height()
 
-    draw_report_line("CREW:", f"{player.crewQty}", report_pos_y)
+    draw_report_line("CREW:", f"{player.crewQty}/{MAX_CREW}", report_pos_y)
     report_pos_y += FONT24.get_height()
 
     draw_report_line("------------------------------", f"-------------", report_pos_y)
@@ -2694,6 +2898,7 @@ def draw_quadrant_map(player):
                 colorA = RED if num_enemy > 0 else DARK_GREEN
                 colorB = LIGHT_BLUE if num_bases > 0 else DARK_GREEN
                 colorC = YELLOW if num_stars > 0 else DARK_GREEN
+                if len(this_sector.wormholes) > 0: colorC  = PURPLE
 
             elif this_sector.visited:
                 textA  = str(this_sector.last_star_count)
@@ -2703,6 +2908,7 @@ def draw_quadrant_map(player):
                 colorA = DARK_RED if num_enemy > 0 else DARK_GREEN
                 colorB = DARK_BLUE if num_bases > 0 else DARK_GREEN
                 colorC = DARK_YELLOW if num_stars > 0 else DARK_GREEN
+                if len(this_sector.wormholes) > 0: colorC  = DARK_PURPLE
 
             else:
                 textA  = "*"
@@ -2721,11 +2927,13 @@ def draw_quadrant_map(player):
                     colorA = RED if num_enemy > 0 else GREEN
                     colorB = LIGHT_BLUE if num_bases > 0 else GREEN
                     colorC = YELLOW if num_stars > 0 else GREEN
+                    if len(this_sector.wormholes) > 0: colorC  = PURPLE
                 else:
                     grid_color = DARK_GREEN
                     colorA = DARK_RED if num_enemy > 0 else DARK_GREEN
                     colorB = DARK_BLUE if num_bases > 0 else DARK_GREEN
                     colorC = DARK_YELLOW if num_stars > 0 else DARK_GREEN
+                    if len(this_sector.wormholes) > 0: colorC  = DARK_PURPLE
 
 
                 # colorC = GREEN
@@ -3568,6 +3776,15 @@ def display_enemy_readout(screen):
         )
         targets_with_distances.append((starbase, direction, distance))
 
+    # Add starbase information if present
+    # if player.current_quadrant.has_starbase:
+    for wormhole in player.current_quadrant.wormholes:
+        # starbase_grid_x, starbase_grid_y = base[0], base[1]
+        direction, distance = calculate_direction_and_distance(
+            player.grid_x, player.grid_y, wormhole.grid_x, wormhole.grid_y
+        )
+        targets_with_distances.append((wormhole, direction, distance))
+
     # for planet in player.current_quadrant.planets:
     #     # starbase_grid_x, starbase_grid_y = base[0], base[1]
     #     direction, distance = calculate_direction_and_distance(
@@ -3599,6 +3816,8 @@ def display_enemy_readout(screen):
             if player.docked: 
                 direction = "DOCKED"
                 distance  = "DOCKED"
+        elif  type(target) == Wormhole:
+            text_color = PURPLE 
         
 
         # Render enemy name
