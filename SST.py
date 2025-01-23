@@ -64,6 +64,14 @@ CREW_DETAIL_START_X = CREW_ORIGIN_X + 20
 CREW_DETAIL_START_Y  = CREW_ORIGIN_Y + 20
 CREW_BOX_SIZE_WIDTH = (SQUARE_SIZE * GRID_SIZE) - 40
 
+LOG_ORIGIN_X = SCAN_ORIGIN_X
+LOG_ORIGIN_Y = SCAN_ORIGIN_Y + (SQUARE_SIZE*4.5)
+LOG_WIDTH = 440  # Width of the log display
+LOG_HEIGHT = SQUARE_SIZE*3  # Height of the log display
+LOG_PADDING = 10  # Padding inside the log box
+MAX_LOG_ENTRIES = 20  # Maximum number of events in the log
+
+
 # Colors (RGB values)
 WHITE = (255, 255, 255)
 OFF_WHITE = (200, 200, 200)
@@ -478,15 +486,19 @@ class Player(pygame.sprite.Sprite):
                         for enemy in self.current_quadrant.enemies: # RESET ENEMY ENERGY IF PLAYER LEAVES
                             enemy.energy = random.randint(800 , 1200)
 
-
+                    log_event(f"NOW ENTERING {get_quadrant_name(sector.quadrant_x, sector.quadrant_y)} QUADRANT")
 
                     if sector.count_enemies() >=1 :
                         ALARM_CHANNEL.play(RED_ALERT,2)
                         # MUSIC_CHANNEL.play(ENEMY_DITTY)
+                        log_event(f"COMBAT AREA - CONDITION RED")
 
 
                     for enemy in sector.enemies:
                         print(enemy.name, " : ", enemy.hull)
+
+                    
+
 
 
 
@@ -728,6 +740,7 @@ class Player(pygame.sprite.Sprite):
                 # self.rect.x += offset_x
                 # self.rect.y += offset_y
                 print("Docked at starbase!")
+                log_event("** DOCKED AT STARBASE **")
 
             else:
                 self.docked = False
@@ -738,6 +751,7 @@ class Player(pygame.sprite.Sprite):
             self.offset_x = 0 
             self.offset_y = 0 
             print("Undocked from starbase!")
+            log_event("** UNDOCKED **")
 
     def toggle_orbit(self, planet):
         """
@@ -758,6 +772,7 @@ class Player(pygame.sprite.Sprite):
                 # self.rect.x += offset_x
                 # self.rect.y += offset_y
                 print("Entered Planetary Orbit!")
+                log_event("** ENTERED PLANETARY ORBIT **")
 
             else:
                 self.inOrbit = False
@@ -768,6 +783,7 @@ class Player(pygame.sprite.Sprite):
             self.offset_x = 0 
             self.offset_y = 0 
             print("Left Planetary Orbit!")
+            log_event("** LEFT PLANETARY ORBIT **")
 
 
 
@@ -815,6 +831,7 @@ class Player(pygame.sprite.Sprite):
         phaser_power = prompt_phaser_power(SCREEN)
         num_enemy = self.current_quadrant.count_enemies()
         print("Firing Phasors @: " + str(num_enemy) + " Targets.")
+        log_event(f"** FIRING PHASERS **")
 
         if phaser_power > 0:
             if phaser_power <= self.energy:
@@ -839,6 +856,7 @@ class Player(pygame.sprite.Sprite):
                         remaining_damage = int(remaining_damage * random.uniform(0.9, 1.1))  # ±10% random variance
 
                         print("range", int(distance), " @ ", remaining_damage, " DMG")
+                        log_event(f"** HIT! {enemy.name} - {remaining_damage} DAMAGE")
 
                         # Check and apply damage to shields first
                         if enemy.shields > 0:
@@ -847,9 +865,12 @@ class Player(pygame.sprite.Sprite):
                                 remaining_damage -= enemy.shields
                                 enemy.shields = 0  # Shields are fully depleted
                                 print(f"HIT! {enemy.name} SHIELDS: {shields_before} -> 0 (Shields Down!)")
+                                log_event(f"     {enemy.name} :: SHIELDS DOWN ::")
+                                
                             else:
                                 enemy.shields -= remaining_damage
                                 print(f"HIT! {enemy.name} SHIELDS: {shields_before} -> {enemy.shields}")
+                      
                                 remaining_damage = 0  # No damage left for the hull
 
                         # If there is remaining damage, apply it to the hull
@@ -859,11 +880,16 @@ class Player(pygame.sprite.Sprite):
                             print(f"HIT! {enemy.name} HULL: {hull_before} -> {enemy.hull}")
 
 
+      
+                        
+
+
 
 
                         # Handle enemy destruction
                         if enemy.hull <= 0:
                             print(f"{enemy.name} destroyed!")
+                            log_event(f"     {enemy.name} :: !! DESTROYED !! ::)")
                             EXPLOSION_CHANNEL.play(SHIP_DEATH_SOUND)
                             enemy_x = GRID_ORIGIN_X + (enemy.grid_x * SQUARE_SIZE) + SQUARE_SIZE // 2
                             enemy_y = GRID_ORIGIN_Y + (enemy.grid_y * SQUARE_SIZE) + SQUARE_SIZE // 2
@@ -937,11 +963,13 @@ class Player(pygame.sprite.Sprite):
 
         if num_torpedoes == 0:
             print("No torpedoes fired.")
+            log_event("No torpedoes fired.")
             return
 
         if num_torpedoes > self.torpedo_qty:
             num_torpedoes = self.torpedo_qty
             print("Insufficient qty torpedoes.")
+            log_event("Insufficient qty torpedoes.")
 
         # Collect target directions for each torpedo
         targets = []
@@ -950,6 +978,7 @@ class Player(pygame.sprite.Sprite):
             run = prompt_numeric_input(f"Enter direction for Torpedo {i + 1}:  {rise} / ", -GRID_SIZE, GRID_SIZE)
             targets.append((rise, run))
             print(f"Direction selected for Torpedo {i + 1}: Rise: {rise}, Run: {run}")
+            log_event(f"Direction selected for Torpedo {i + 1}: Rise: {rise}, Run: {run}")
 
         # Define a helper function to fire a single torpedo
         def fire_single_torpedo(index, rise, run):
@@ -961,14 +990,18 @@ class Player(pygame.sprite.Sprite):
                     self.torpedo_qty -= 1
                     self.energy -= TORPEDO_ENERGY_USAGE
                     print(f"Torpedo {index + 1} fired with direction Rise: {rise}, Run: {run}!")
+                    # log_event(f"Torpedo {index + 1} fired with direction Rise: {rise}, Run: {run}!")
                     WEAPON_CHANNEL.play(MISSILE_SOUND)
 
                     if self.torpedo_qty <= 0:
                         print("Torpedo Stock Depleted")
+                        log_event("Torpedo Stock Depleted")
                 else:
                     print("Insufficient energy for Torpedo")
+                    log_event("Insufficient energy for Torpedo")
             else:
                 print("Torpedo Stock Depleted")
+                log_event("Torpedo Stock Depleted")
 
         # Fire each torpedo with a short delay between them
         for i, (rise, run) in enumerate(targets):
@@ -1373,11 +1406,12 @@ class Torpedo(pygame.sprite.Sprite):
                         if random.random() > self.miss_chance:
 
                             print(f"{self.name} * Hit Target {target.name} at ({target.grid_x}, {target.grid_y})! *")
+                            log_event(f"{self.name} ** HIT! {target.name} - {self.damage } DAMAGE")
                             return target
 
                         else:
                             print(f"{self.name} * Missed Target {target.name} at ({target.grid_x}, {target.grid_y})! * @ {self.miss_chance}")
-
+                            log_event(f"{self.name}  -- MISS !")
         return None
 
     def update(self):
@@ -1446,11 +1480,14 @@ class Torpedo(pygame.sprite.Sprite):
 
         self.explode(enemy.grid_x, enemy.grid_y, max_size=SQUARE_SIZE //3 , start_size=1, growth_rate=2)
 
+        
+
         if self.damage >= enemy.shields:
             remaining_damage = self.damage - enemy.shields
             enemy.shields = 0
             enemy.shield_energy = 0
             enemy.hull -= remaining_damage
+            log_event(f"     {enemy.name} :: SHIELDS DOWN ::")
         else:
             enemy.shields -= self.damage
             enemy.shield_energy -= self.damage
@@ -1462,6 +1499,7 @@ class Torpedo(pygame.sprite.Sprite):
 
         if enemy.hull <= 0:
             print(f"     {enemy.name} Destroyed!")
+            log_event(f"     {enemy.name} :: !! DESTROYED !! ::)")
             
             # player.current_quadrant.enemies.remove(enemy)
             self.explode(enemy.grid_x, enemy.grid_y, max_size=SQUARE_SIZE, start_size=5, growth_rate=2,explosion_sound=SHIP_DEATH_SOUND)
@@ -1913,7 +1951,7 @@ class Planet:
 
         self.image = pygame.image.load(random_planet["file"]).convert_alpha()
         planet_image_size_factor = self.size / 10
-        planet_image_size_factor = max(0.6, min(0.9, planet_image_size_factor)) 
+        planet_image_size_factor = max(0.5, min(0.80, planet_image_size_factor)) 
         self.image = pygame.transform.scale(self.image, (SQUARE_SIZE*planet_image_size_factor, SQUARE_SIZE*planet_image_size_factor))  # Scale to grid square size 
 
         self.shields = 0 
@@ -4138,6 +4176,46 @@ def brighten_color(rgb, increase_by):
 
     return tuple(brighten_value(value, increase_by) for value in rgb)
 
+def log_event(event_string):
+    """Add an event to the ship's log."""
+    global ship_log
+    # Add the new event to the list
+    ship_log.append(event_string)
+    # Trim the log if it exceeds the maximum number of entries
+    if len(ship_log) > MAX_LOG_ENTRIES:
+        ship_log.pop(0)
+
+def draw_log(screen):
+    """Draw the ship's log directly onto the given screen."""
+    # Draw a background rectangle for the log
+    pygame.draw.rect(
+        screen,
+        BLACK,
+        (LOG_ORIGIN_X, LOG_ORIGIN_Y, LOG_WIDTH, LOG_HEIGHT),
+    )
+    # Draw a border around the log
+    pygame.draw.rect(
+        screen, GREEN, (LOG_ORIGIN_X, LOG_ORIGIN_Y, LOG_WIDTH, LOG_HEIGHT), 2
+    )
+
+    # Draw each log entry
+    for i, event in enumerate(ship_log):
+        # Calculate the Y position for each entry (bottom to top)
+        entry_color = DARK_GREEN
+        if i >= len(ship_log)-1 : entry_color = GREEN
+        y_pos = (
+            LOG_ORIGIN_Y
+            + LOG_HEIGHT
+            - LOG_PADDING
+            - (len(ship_log) - i) * (FONT22.get_height() + 4)
+        )
+        # Skip if the entry would be above the log area
+        if y_pos < LOG_ORIGIN_Y + LOG_PADDING:
+            continue
+        text_surface = FONT22.render(event, True, entry_color)
+        screen.blit(text_surface, (LOG_ORIGIN_X + LOG_PADDING, y_pos))
+
+
 
 def draw_all_to_screen(): # for use when in a prompt.
     global projectile_group
@@ -4156,6 +4234,8 @@ def draw_all_to_screen(): # for use when in a prompt.
 
     draw_captain(overlay_images,key_pressed)
 
+    draw_log(SCREEN)
+
 
 
 ### END FUNCTIONS ###########################################################################################################
@@ -4171,8 +4251,12 @@ def main():
 
     global showing_roster
     global roster_selected_line
+    global ship_log
 
     roster_selected_line = 0
+
+    ship_log = []
+    log_event("Ship launched successfully.")
 
     player = Player()
     projectile_group = pygame.sprite.Group() 
@@ -4183,6 +4267,10 @@ def main():
 
     # List to store overlay images and their offsets
     overlay_images = []
+
+    # The log list to hold recent events
+    
+
 
     while running:
 
@@ -4308,6 +4396,7 @@ def main():
                                 current_index += 1
                                 player.shield_level = SHIELD_LEVELS[current_index]
                                 print(f"Shield level increased to {player.shield_level}%")
+                                log_event(f"Shield level increased to {player.shield_level}%")
                                 if player.shields_on:
                                     player.shields = (player.shield_energy / 100) * player.shield_level
                                     WEAPON_CHANNEL.play(SHIELD_UP)
@@ -4324,6 +4413,7 @@ def main():
                                 current_index -= 1
                                 player.shield_level = SHIELD_LEVELS[current_index]
                                 print(f"Shield level decreased to {player.shield_level}%")
+                                log_event(f"Shield level decreased to {player.shield_level}%")
                                 if player.shields_on:
                                     WEAPON_CHANNEL.play(SHIELD_DOWN)
                                     if player.shield_level <= 0:
@@ -4383,6 +4473,8 @@ def main():
         draw_quadrant_map(player)
 
         draw_captain(overlay_images,key_pressed)
+
+        draw_log(SCREEN)
 
         while player.is_dead:
 
