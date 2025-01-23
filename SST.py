@@ -74,12 +74,15 @@ DARK_GREY = (50, 50, 50)
 NEAR_BLACK = (25, 25, 50)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
+MIDDLE_RED = (160, 0, 0)
 DARK_RED = (50, 0, 0)
 ORANGE = (255, 165, 0)
 YELLOW = (255, 255, 0)
 GOLD       = (255,215,0)
+MIDDLE_YELLOW = (180, 180, 0)
 DARK_YELLOW = (60, 60, 0)
 GREEN = (0, 255, 0)
+MIDDLE_GREEN = (0,150,0)
 DARK_GREEN =(0,50,0)
 BLUE = (0, 0, 255)
 LIGHT_BLUE = (35,35,255)
@@ -136,8 +139,9 @@ MAX_SHIELDS = 2000
 BASE_RELOAD_SHIELD = 2000
 
 MAX_TORPEDO_QTY = 10
+PLAYER_TORPEDO_DAMAGE = 1000
 TORPEDO_DAMAGE = 500
-TORPEDO_SPEED = 0.5
+TORPEDO_SPEED = 0.25
 TORPEDO_ENERGY_USAGE = 50
 
 CHANCE_OF_TORPEDO_MISS = 0.01
@@ -323,12 +327,15 @@ MISSILE_SOUND = pygame.mixer.Sound("earthling-mx.wav")
 SHIELD_UP = pygame.mixer.Sound("melnorme-charge.wav")
 SHIELD_DOWN = pygame.mixer.Sound("melnorme-confuse.wav")
 ENEMY_PHASER_SOUND = pygame.mixer.Sound("vux-laser.wav")
+ENEMY_TORPEDO = pygame.mixer.Sound("mycon-plasmoid.wav")  
 
 EXPLOSION_CHANNEL = pygame.mixer.Channel(3)
-EXPLOSION_CHANNEL.set_volume(0.1)
+EXPLOSION_CHANNEL.set_volume(0.50)
 SHIP_DEATH_SOUND = pygame.mixer.Sound("shipdies.wav")
+SHIP_DEATH_SOUND.set_volume(0.50)
 MEDIUM_EXPLOSION = pygame.mixer.Sound("boom-medium.wav")
 WARP_SOUND = pygame.mixer.Sound("tng_slowwarp_clean.mp3")
+WARP_SOUND.set_volume(0.50)
 HURT = pygame.mixer.Sound("land_hrt.wav") 
 PORTAL = pygame.mixer.Sound("portal.wav")
 
@@ -358,6 +365,8 @@ VICTORY_DITTIES = [VICTORY_DITTY,VICTORY_DITTY_PLUS10, VICTORY_DITTY_MINUS10, VI
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
+
+        self.name = "Player"
         
         self.orig_image = pygame.transform.scale(EARTHING_SHIP, (SQUARE_SIZE, SQUARE_SIZE))
         self.image = self.orig_image
@@ -947,7 +956,7 @@ class Player(pygame.sprite.Sprite):
             """Fire a single torpedo."""
             if self.torpedo_qty >= 1:
                 if self.energy >= TORPEDO_ENERGY_USAGE:
-                    torpedo = Torpedo(index + 1, self.grid_x, self.grid_y, rise, run)
+                    torpedo = Torpedo(index + 1, self, self.grid_x, self.grid_y, rise, run)
                     projectile_group.add(torpedo)
                     self.torpedo_qty -= 1
                     self.energy -= TORPEDO_ENERGY_USAGE
@@ -1085,6 +1094,7 @@ class Player(pygame.sprite.Sprite):
                     self.current_quadrant = self.enter_sector(self.quadrant_x, self.quadrant_y)
                     print(f"Player teleported to Quadrant ({new_quadrant.quadrant_x}, {new_quadrant.quadrant_y}) at ({self.grid_x}, {self.grid_y}).")
                     EXPLOSION_CHANNEL.play(PORTAL)
+                    self.turn = 0
                     # break
                     self.update_position()
                     return True
@@ -1265,10 +1275,11 @@ class Phaser_blast(pygame.sprite.Sprite):
         pygame.draw.line(SCREEN,self.color,(self.origin_x, self.origin_y),(self.enemy_x, self.enemy_y), 2)
 
 class Torpedo(pygame.sprite.Sprite):
-    def __init__(self, name, origin_x, origin_y, rise, run):
+    def __init__(self, name, owner, origin_x, origin_y, rise, run):
         super().__init__()
 
         self.name = "Torpedo " + str(name)
+        self.owner = owner
 
         # Starting position
         self.grid_x = origin_x
@@ -1279,21 +1290,28 @@ class Torpedo(pygame.sprite.Sprite):
         self.run = run
 
         self.speed = TORPEDO_SPEED
-        self.damage = int(TORPEDO_DAMAGE * random.uniform(0.9, 1.1))  # ±10% random variance
+        if self.owner == player:
+            self.damage = int(PLAYER_TORPEDO_DAMAGE * random.uniform(0.9, 1.1))  # ±10% random variance
+        else:
+            self.damage = int(TORPEDO_DAMAGE * random.uniform(0.9, 1.1))  # ±10% random variance
 
         # Calculate movement vector based on rise/run
         self.direction_vector = self.calculate_direction_vector()
 
         # Create the torpedo visual
+
+        self.color = WHITE 
+        self.color_list = [WHITE,RED,ORANGE,YELLOW,GOLD,DARK_RED, DARK_YELLOW]
+
         self.image = pygame.Surface((5, 5), pygame.SRCALPHA)
-        pygame.draw.circle(self.image, WHITE, (2, 2), 2)
+        pygame.draw.circle(self.image, self.color, (2, 2), 2)
         self.rect = self.image.get_rect(
             center=(GRID_ORIGIN_X + self.grid_x * SQUARE_SIZE + SQUARE_SIZE // 2,
                     GRID_ORIGIN_Y + self.grid_y * SQUARE_SIZE + SQUARE_SIZE // 2)
         )
 
         self.last_update = pygame.time.get_ticks()  # Track the last time the torpedo moved
-        self.travel_delay = 100  # Milliseconds delay between moves
+        self.travel_delay = 50  # Milliseconds delay between moves
 
         self.near_targets = []
         self.miss_chance = CHANCE_OF_TORPEDO_MISS
@@ -1333,24 +1351,40 @@ class Torpedo(pygame.sprite.Sprite):
 
         print(f"{self.name} @ ({rounded_x}, {rounded_y})")
 
-        for enemy in player.current_quadrant.enemies:
-            if rounded_x == enemy.grid_x and rounded_y == enemy.grid_y:
 
-                if enemy not in self.near_targets:
-                    self.near_targets.append(enemy)
+        # # Check for collisions
+        # for entity in all_entities:
+        #     if entity != self.owner and self.rect.colliderect(entity.rect):
+        #         # Handle collision
+        #         self.handle_collision(entity)
+        #         return  # Destroy the torpedo after a single collision
 
-                    if random.random() > self.miss_chance:
+        target_list = []
+        target_list.extend(player.current_quadrant.enemies)
+        target_list.append(player)
 
-                        print(f"{self.name} * Hit Enemy {enemy.name} at ({enemy.grid_x}, {enemy.grid_y})! *")
-                        return enemy
+        for target in target_list:
+            # print('Target:' + target.name)
+            if rounded_x == target.grid_x and rounded_y == target.grid_y:
+                if target != self.owner: #and self.rect.colliderect(enemy.rect):
+                    if target not in self.near_targets:
+                        self.near_targets.append(target)
 
-                    else:
-                        print(f"{self.name} * Missed Enemy {enemy.name} at ({enemy.grid_x}, {enemy.grid_y})! * @ {self.miss_chance}")
+                        if random.random() > self.miss_chance:
+
+                            print(f"{self.name} * Hit Target {target.name} at ({target.grid_x}, {target.grid_y})! *")
+                            return target
+
+                        else:
+                            print(f"{self.name} * Missed Target {target.name} at ({target.grid_x}, {target.grid_y})! * @ {self.miss_chance}")
 
         return None
 
     def update(self):
         """Update the torpedo's movement and check for collisions."""
+
+        self.color = random.choice(self.color_list)
+
         now = pygame.time.get_ticks()
         if now - self.last_update < self.travel_delay:
             return  # Not enough time has passed yet
@@ -1385,7 +1419,10 @@ class Torpedo(pygame.sprite.Sprite):
             self.explode(self.grid_x, self.grid_y, max_size=SQUARE_SIZE //3 , start_size=1, growth_rate=2)
             return
 
-        # Check for collisions with enemies
+        
+        
+
+        # Check for collisions with enemies    
         hit_enemy = self.check_collision(player.current_quadrant.enemies)
         if hit_enemy:
             self.handle_enemy_hit(hit_enemy)
@@ -1412,9 +1449,11 @@ class Torpedo(pygame.sprite.Sprite):
         if self.damage >= enemy.shields:
             remaining_damage = self.damage - enemy.shields
             enemy.shields = 0
+            enemy.shield_energy = 0
             enemy.hull -= remaining_damage
         else:
             enemy.shields -= self.damage
+            enemy.shield_energy -= self.damage
 
         
         print(f"     {enemy.name} Shields: {shields_before} -> {enemy.shields}")
@@ -1423,13 +1462,16 @@ class Torpedo(pygame.sprite.Sprite):
 
         if enemy.hull <= 0:
             print(f"     {enemy.name} Destroyed!")
-            enemy.die()
+            
             # player.current_quadrant.enemies.remove(enemy)
             self.explode(enemy.grid_x, enemy.grid_y, max_size=SQUARE_SIZE, start_size=5, growth_rate=2,explosion_sound=SHIP_DEATH_SOUND)
             # EXPLOSION_CHANNEL.play(SHIP_DEATH_SOUND)
 
-            for crewman in player.soulsOnBoard:
-                crewman.xp += random.randint(0,5)
+            if enemy != player:
+                for crewman in player.soulsOnBoard:
+                    crewman.xp += random.randint(0,5)
+                enemy.die()
+
 
             # Check if all enemies are destroyed, and play victory sound
             if len(player.current_quadrant.enemies) == 0:
@@ -1444,7 +1486,7 @@ class Torpedo(pygame.sprite.Sprite):
 
     def draw(self, screen):
         """Draw the torpedo."""
-        pygame.draw.circle(screen, WHITE, self.rect.center, 6)
+        pygame.draw.circle(screen, self.color, self.rect.center, 6)
 
 
 
@@ -1476,7 +1518,25 @@ class Explosion(pygame.sprite.Sprite):
         # Draw the explosion as a growing circle
         pygame.draw.circle(screen,self.color, self.position, self.current_size // 2)
 
+class Star(pygame.sprite.Sprite):
+    def __init__(self, grid_x, grid_y, quadrant_x, quadrant_y):
+        super().__init__()
+        self.name = "Star"
+        self.grid_x = grid_x
+        self.grid_y = grid_y
+        self.quadrant_x = quadrant_x
+        self.quadrant_y = quadrant_y
 
+        self.size = random.choice([16,22,26])
+        # Dwarf Star
+        # Giant Star
+        # Supergiant Star
+
+        self.star_color_types = ["RED", "ORANGE", "YELLOW", "GREEN", "BLUE", "WHITE"]
+        self.colorA = random.choice([MIDDLE_RED, ORANGE, MIDDLE_YELLOW, MIDDLE_GREEN, DARK_BLUE, OFF_WHITE])
+        self.colorB = brighten_color(self.colorA, 50)
+        self.colorC = brighten_color(self.colorA, 100)
+        self.colorD = (*self.colorC[:3], 50) #(*self.colorC[:3], 50)   # Red with 50% transparency
 
 class Base(pygame.sprite.Sprite):
     def __init__(self, grid_x, grid_y):
@@ -1576,7 +1636,7 @@ class Enemy(pygame.sprite.Sprite):
             self.max_phasor = 600
             self.speed = 2
 
-        
+        self.shield_energy = self.energy
 
         # Timer to trigger movement after player action
         self.trigger_update_time = None
@@ -1605,15 +1665,52 @@ class Enemy(pygame.sprite.Sprite):
             player.current_quadrant.enemies.remove(self)
         self.kill()
 
+    def enemy_fire_torpedo(self, player, projectile_group):
+        """
+        Enemy fires a torpedo at the player's current position.
+
+        :param player: The player object.
+        :param projectile_group: The sprite group to manage projectiles.
+        """
+        # Ensure the enemy has enough torpedoes and energy
+        if self.torpedo_qty > 0 and self.energy >= TORPEDO_ENERGY_USAGE:
+            # Calculate direction (rise, run) based on the player's position
+            rise = player.grid_y - self.grid_y
+            run = player.grid_x - self.grid_x
+
+            # Create the torpedo
+            torpedo = Torpedo(self.name, self, self.grid_x, self.grid_y, rise, run)
+            projectile_group.add(torpedo)
+
+            # Deduct energy and torpedo stock
+            self.energy -= TORPEDO_ENERGY_USAGE
+            self.torpedo_qty -= 1
+
+            # Print feedback and play sound
+            print(f"{self.name} fires a torpedo at the player! Direction: Rise: {rise}, Run: {run}")
+            WEAPON_CHANNEL.play(ENEMY_TORPEDO)
+
+            # Check if the enemy's torpedoes are depleted
+            if self.torpedo_qty <= 0:
+                print(f"{self.name} has no torpedoes left!")
+        else:
+            if self.torpedo_qty <= 0:
+                print(f"{self.name} has no torpedoes left!")
+            if self.energy < TORPEDO_ENERGY_USAGE:
+                print(f"{self.name} has insufficient energy to fire a torpedo!")
+
+
     def enemy_fire_phaser(self, player):
         """Enemy fires its phaser at the player."""
 
-        if self.energy >= 100:  # Ensure the enemy has enough energy
+        # Base phaser power (e.g., 300)
+        phaser_power = random.randint(self.min_phasor, self.max_phasor)
+
+        if self.energy >= phaser_power:  # Ensure the enemy has enough energy
             # Calculate the distance to the player
             distance = abs(self.grid_x - player.grid_x) + abs(self.grid_y - player.grid_y)
 
-            # Base phaser power (e.g., 300)
-            phaser_power = random.randint(self.min_phasor, self.max_phasor)
+            
             # Adjust damage based on distance (similar to player's phaser)
             if distance == 0:
                 damage = int(phaser_power * 0.9)
@@ -1713,7 +1810,10 @@ class Enemy(pygame.sprite.Sprite):
                                 self.update_position()
 
                     if random.random() < .75:
-                        self.enemy_fire_phaser(player)
+                        if (random.random() < .50) or (self.torpedo_qty <= 0):
+                            self.enemy_fire_phaser(player)
+                        else:
+                            self.enemy_fire_torpedo(player, projectile_group)
 
 
 
@@ -1813,7 +1913,7 @@ class Planet:
 
         self.image = pygame.image.load(random_planet["file"]).convert_alpha()
         planet_image_size_factor = self.size / 10
-        planet_image_size_factor = max(0.6, min(1, planet_image_size_factor)) 
+        planet_image_size_factor = max(0.6, min(0.9, planet_image_size_factor)) 
         self.image = pygame.transform.scale(self.image, (SQUARE_SIZE*planet_image_size_factor, SQUARE_SIZE*planet_image_size_factor))  # Scale to grid square size 
 
         self.shields = 0 
@@ -1884,7 +1984,7 @@ class Sector:
     def is_position_occupied(self, x, y):
         """Check if a position is occupied by any object in the sector."""
         # Check for stars
-        if (x, y) in self.stars:
+        if any(star.grid_x == x and star.grid_y == y for star in self.stars):
             return True
         # Check for planets
         if any(planet.grid_x == x and planet.grid_y == y for planet in self.planets):
@@ -1920,7 +2020,8 @@ class Sector:
                         new_planet = Planet(obj_x, obj_y, self.quadrant_x, self.quadrant_y)
                         self.planets.append(new_planet)
                     else:  # Otherwise, add a star
-                        self.stars.append((obj_x, obj_y))
+                        new_star = Star(obj_x, obj_y, self.quadrant_x, self.quadrant_y)
+                        self.stars.append(new_star)
                     break  # Successfully placed an object, move to the next
             else:
                 print("Max attempts reached while placing stars/planets.")
@@ -1932,7 +2033,8 @@ class Sector:
                 star_x = random.randint(0, GRID_SIZE - 1)
                 star_y = random.randint(0, GRID_SIZE - 1)
                 if (star_x, star_y) != (player_x, player_y) and not self.is_position_occupied(star_x, star_y):
-                    self.stars.append((star_x, star_y))
+                    new_star = Star(star_x, star_y, self.quadrant_x, self.quadrant_y)
+                    self.stars.append(new_star)
                     break
             else:
                 print("Max attempts reached while placing the mandatory star.")
@@ -2012,8 +2114,10 @@ class Sector:
         return False
 
     def is_star_at(self, x, y):
-        """Check if there is a star at the given coordinates."""
-        return (x, y) in self.stars
+        for star in self.stars:
+            if star.grid_x == x and star.grid_y == y:
+                return star
+        return False
 
     def is_enemy_at(self, x, y):
         for enemy in self.enemies:
@@ -2428,8 +2532,32 @@ def draw_sector_map():
 
             # Check for stars
             if player.current_quadrant.is_star_at(col, row):
-                pygame.draw.circle(SCREEN, YELLOW, rect.center, 20)  # Yellow star
-                pygame.draw.rect(SCREEN, YELLOW, rect, 1)  # Yellow grid line
+                this_star = player.current_quadrant.is_star_at(col, row)
+
+                # pygame.draw.circle(SCREEN, this_star.colorD, rect.center, this_star.size + 10, 4)  # Yellow star
+                
+
+                pygame.draw.circle(SCREEN, this_star.colorA, rect.center, this_star.size)  # Yellow star
+                pygame.draw.circle(SCREEN, this_star.colorB, rect.center, this_star.size - (this_star.size/10)*2)  # Yellow star
+                pygame.draw.circle(SCREEN, this_star.colorC, rect.center, this_star.size - (this_star.size/10)*4)  # Yellow star
+                
+                # Now add a semi-transparent overlay that is wider and centered
+                transparent_radius = this_star.size + (this_star.size/10)*5  # Make it slightly larger than the outermost circle
+                transparent_diameter = transparent_radius * 2
+
+                # Create a smaller surface for the transparent circle
+                circle_surface = pygame.Surface((transparent_diameter, transparent_diameter), pygame.SRCALPHA)
+
+                # Draw the semi-transparent circle onto the new surface
+                semi_transparent_color = this_star.colorD  # RGB + Alpha (50% transparency)
+                local_center = (transparent_radius, transparent_radius)  # Center within the surface
+                pygame.draw.circle(circle_surface, semi_transparent_color, local_center, transparent_radius)
+
+                # Blit the semi-transparent surface onto the main screen
+                SCREEN.blit(circle_surface, (rect.centerx - transparent_radius, rect.centery - transparent_radius))
+
+                # pygame.draw.rect(SCREEN, YELLOW, rect, 1)  # Yellow grid line
+                pygame.draw.rect(SCREEN, DARK_GREEN, rect, 1)  # Yellow grid line
 
             # Check for planets
             elif player.current_quadrant.is_planet_at(col, row):  # Add planet drawing logic
@@ -2639,7 +2767,7 @@ def draw_reports():
     draw_report_line("HULL STRENGTH:", str(round(player.hull)), report_pos_y)
     report_pos_y += FONT24.get_height()
 
-    draw_report_line("CREW:", f"{player.crewQty}/{MAX_CREW}", report_pos_y)
+    draw_report_line("CREW:", f"{player.crewQty} / {MAX_CREW}", report_pos_y)
     report_pos_y += FONT24.get_height()
 
     draw_report_line("------------------------------", f"-------------", report_pos_y)
@@ -3996,6 +4124,19 @@ def draw_captain(overlay_images, key_pressed=False):
         overlay_image = image
         x_offset, y_offset = abs(x_offset), abs(y_offset)
         SCREEN.blit(overlay_image, (box_x + x_offset*CAPTAIN_BOX_SCALE, box_y + y_offset*CAPTAIN_BOX_SCALE))
+
+def brighten_color(rgb, increase_by):
+    """
+    Brightens an RGB color by increasing each non-zero value by a given amount.
+
+    :param rgb: Tuple of (R, G, B) values.
+    :param increase_by: Amount to increase each non-zero value.
+    :return: New RGB color tuple with modified values.
+    """
+    def brighten_value(value, increase_by):
+        return min(value + increase_by, 255) if value > 0 else 0
+
+    return tuple(brighten_value(value, increase_by) for value in rgb)
 
 
 def draw_all_to_screen(): # for use when in a prompt.
