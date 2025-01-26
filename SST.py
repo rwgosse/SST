@@ -90,7 +90,7 @@ LIGHT_GREY = (150, 150, 150)
 GREY = (128, 128, 128)
 MIDDLE_GREY = (100, 100, 100)
 DARK_GREY = (50, 50, 50)
-NEAR_BLACK = (25, 25, 50)
+NEAR_BLACK = (25, 25, 25)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 MIDDLE_RED = (160, 0, 0)
@@ -873,9 +873,11 @@ class Player(pygame.sprite.Sprite):
 
 
     def land_away_team(self):
+        global key_pressed
         """Prompt the player to transfer energy between shields and energy reserves."""
         input_text = ""
         prompt_active = True
+        key_pressed = False
 
         while prompt_active:
             # Clear and display the prompt area
@@ -898,10 +900,12 @@ class Player(pygame.sprite.Sprite):
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_t:
                         self.land_away_team_with_transporter()
+                        key_pressed = True
                         return
 
                     elif event.key == pygame.K_s:
                         self.land_away_team_with_shuttle()
+                        key_pressed = True
                         return
 
     def land_away_team_with_shuttle(self):
@@ -910,6 +914,15 @@ class Player(pygame.sprite.Sprite):
         # Check if the ship is in orbit around the planet
         if not self.orbiting_planet:
             print("You must be in standard orbit to use a shuttlecraft.")
+            return
+
+
+        if self.orbiting_planet.landers >= 1 and not self.orbiting_planet.away_team_on_planet: # Shuttle already n planet returns to the ship
+            self.orbiting_planet.landers    -= 1
+            self.landers                    += 1 
+            log_event(f"SHUTTLE RECALLED TO SHIP", WHITE)
+            EXPLOSION_CHANNEL.play(SHUTTLE_RETURN)
+            self.stardate += (.1 * 0.95)
             return
 
         if self.away_team_on_planet and not self.orbiting_planet.away_team_on_planet:
@@ -931,7 +944,13 @@ class Player(pygame.sprite.Sprite):
 
             else:
                 print(f"Sending shuttle to pick up the away team from {self.orbiting_planet.name}...")
-                log_event(f"SENDING SHUTTLE TO RECOVER AWAY TEAM", WHITE)
+                log_event(f"SENDING SHUTTLE TO AWAY TEAM", WHITE)
+                self.landers                    -= 1  # Deduct one shuttle for the mission
+                self.orbiting_planet.landers    += 1
+                EXPLOSION_CHANNEL.play(SHUTTLE_LAUNCH)
+                self.stardate += (.1 * 0.95)
+                return
+
 
 
             print(f"Shuttle has successfully returned with the away team.")
@@ -971,7 +990,8 @@ class Player(pygame.sprite.Sprite):
                 return
 
             # Select 5 crew members for the away team
-            away_team = self.soulsOnBoard.sprites()[:AWAY_TEAM_SIZE]
+            away_team = pygame.sprite.Group() 
+            away_team.add(self.soulsOnBoard.sprites()[:AWAY_TEAM_SIZE]) 
 
             if self.landers <= 0: # Send Shuttle to planet to retrieve away team
                 print("No shuttlecraft available!")
@@ -979,13 +999,13 @@ class Player(pygame.sprite.Sprite):
                 return
 
             
-            if self.orbiting_planet.landers >= 1: # Shuttle already n planet returns to the ship
-                self.orbiting_planet.landers    -= 1
-                self.landers                    += 1 
-                log_event(f"SHUTTLE RECALLED TO SHIP", WHITE)
-                EXPLOSION_CHANNEL.play(SHUTTLE_RETURN)
-                self.stardate += (.1 * 0.95)
-                return
+            # if self.orbiting_planet.landers >= 1: # Shuttle already n planet returns to the ship
+            #     self.orbiting_planet.landers    -= 1
+            #     self.landers                    += 1 
+            #     log_event(f"SHUTTLE RECALLED TO SHIP", WHITE)
+            #     EXPLOSION_CHANNEL.play(SHUTTLE_RETURN)
+            #     self.stardate += (.1 * 0.95)
+            #     return
 
 
 
@@ -1060,7 +1080,8 @@ class Player(pygame.sprite.Sprite):
                 return
 
             # Select 5 crew members for the away team
-            away_team = self.soulsOnBoard.sprites()[:AWAY_TEAM_SIZE]
+            away_team = pygame.sprite.Group() 
+            away_team.add(self.soulsOnBoard.sprites()[:AWAY_TEAM_SIZE])
             
 
             
@@ -1147,10 +1168,11 @@ class Player(pygame.sprite.Sprite):
 
         
         for i in range(killqty):
-            souls = away_team#.sprites()
+            souls = away_team.sprites()
             casualty = souls[-1]
             print("The transporter signal has been re-established.")
-            log_event(f"{casualty.fullInfo()} KILLED !", RED)
+            log_event(f"    {casualty.fullInfo()} -- KILLED !", RED)
+
             casualty.kill()
             EXPLOSION_CHANNEL.play(HURT)
 
@@ -2110,7 +2132,7 @@ class Enemy(pygame.sprite.Sprite):
             self.full_hull = random.randint(50, 100)
             self.min_phasor = 100
             self.max_phasor = 200
-            self.speed = 2
+            self.speed = 3
             self.torpedo_damage = TORPEDO_DAMAGE/4
 
         elif self.name == "ELUDER":
@@ -2119,7 +2141,7 @@ class Enemy(pygame.sprite.Sprite):
             self.full_hull = random.randint(100, 200)
             self.min_phasor = 150
             self.max_phasor = 250
-            self.speed = 2
+            self.speed = 3
             self.torpedo_damage = TORPEDO_DAMAGE/4
 
 
@@ -2295,6 +2317,59 @@ class Enemy(pygame.sprite.Sprite):
         if players_turn and player.turn != 0:
             players_turn = False
 
+    def successive_move(self):
+
+        move_speed = random.randint(1,self.speed)
+        self.oldPOS = (self.grid_x, self.grid_y)
+
+        # Perform successive movement
+        for _ in range(move_speed):
+            delay = 0
+            # Call the existing move function for each step
+            self.move()
+            
+            if self.energy <= 0:
+                print("Energy depleted! Stopping movement.")
+                break
+
+            while delay < 20:
+                # Add delay between each move
+                delay += 1
+                SCREEN.fill(BLACK)
+                draw_all_to_screen()
+                pygame.display.flip()
+                clock.tick(FPS)
+
+
+    def move(self):
+
+
+
+        adjacent_positions = self.get_adjacent_positions()
+
+        # Check available adjacent positions
+        available_positions = [
+            pos for pos in adjacent_positions 
+            if self.is_valid_position(pos)  # Check if the position is valid
+        ]
+
+        if available_positions:
+            # Randomly pick an available adjacent position
+            new_pos = random.choice(available_positions)
+            old_x, old_y = self.grid_x, self.grid_y
+            self.grid_x, self.grid_y = new_pos
+            # Ensure get_move_direction is being called and returns a valid direction
+            self.last_move_direction = self.get_move_direction(old_x, old_y, self.grid_x, self.grid_y)
+            # print(self.last_move_direction)  # Debugging the direction
+            
+            # Only update position if the direction was properly set
+            print(f"Enemy Moved to ({new_pos}).")
+            
+            
+            if self.last_move_direction:
+                self.update_position()
+
+
     def update(self, current_sector, players_turn):
         """Update enemy's position with a chance to move to an adjacent open sector square within boundaries."""
         # print(players_turn)
@@ -2302,42 +2377,20 @@ class Enemy(pygame.sprite.Sprite):
         if self.trigger_update_time is not None:
             current_time = pygame.time.get_ticks()
             if current_time - self.trigger_update_time >= self.response_delay:
-
                 if len(projectile_group) == 0:
                     self.trigger_update_time = None  # Reset trigger
 
-                    if not players_turn:
-                        players_turn = True
-
-                    if random.random() < .50:  # 20% chance to move
-                        adjacent_positions = self.get_adjacent_positions()
-
-                        # Check available adjacent positions
-                        available_positions = [
-                            pos for pos in adjacent_positions 
-                            if self.is_valid_position(pos)  # Check if the position is valid
-                        ]
-
-                        if available_positions:
-                            # Randomly pick an available adjacent position
-                            new_pos = random.choice(available_positions)
-                            old_x, old_y = self.grid_x, self.grid_y
-                            self.grid_x, self.grid_y = new_pos
-                            # Ensure get_move_direction is being called and returns a valid direction
-                            self.last_move_direction = self.get_move_direction(old_x, old_y, self.grid_x, self.grid_y)
-                            # print(self.last_move_direction)  # Debugging the direction
-                            
-                            # Only update position if the direction was properly set
-                            
-                            
-                            if self.last_move_direction:
-                                self.update_position()
+                    if random.random() < .50:  # 50% chance to move
+                        self.successive_move()
 
                     if random.random() < .75:
                         if (random.random() < .50) or (self.torpedo_qty <= 0):
                             self.enemy_fire_phaser(player)
                         else:
                             self.enemy_fire_torpedo(player, projectile_group)
+
+                    if not players_turn:
+                        players_turn = True
 
 
 
@@ -2360,6 +2413,10 @@ class Enemy(pygame.sprite.Sprite):
         # Ensure the position is within the sector's boundaries
         # if not (0 <= x < player.current_quadrant.width and 0 <= y < player.current_quadrant.height):
         #     return False
+
+        if self.oldPOS == position:
+            print("old position")
+            return False
 
         # Check if the position contains a star
         if player.current_quadrant.is_star_at(x, y):
@@ -2393,9 +2450,12 @@ class Enemy(pygame.sprite.Sprite):
         """Return a list of positions within the enemy's speed distance, considering sector boundaries."""
         adjacent_positions = []
 
+        # this_speed = self.speed 
+        this_speed = 1
+
         # Loop through a range of positions based on the enemy's speed
-        for dx in range(-self.speed, self.speed + 1):  # dx ranges from -speed to +speed
-            for dy in range(-self.speed, self.speed + 1):  # dy ranges from -speed to +speed
+        for dx in range(-this_speed, this_speed+1):  # dx ranges from -speed to +speed
+            for dy in range(-this_speed, this_speed+1):  # dy ranges from -speed to +speed
                 # Calculate the new position
                 new_x = self.grid_x + dx
                 new_y = self.grid_y + dy
@@ -2744,7 +2804,7 @@ class Crewman(pygame.sprite.Sprite):
                 self.shirtColor = LIGHT_GREY 
 
         elif self.department in ["Medical"]:
-            self.shirtColor = BLUE
+            self.shirtColor = LIGHT_BLUE
             self.medical += random.randint(20,40) 
 
         elif self.department in ["Physical-Science"]:
@@ -3287,6 +3347,7 @@ def draw_reports():
     draw_report_line("SHUTTLECRAFT:", str(player.landers), report_pos_y)
     report_pos_y += FONT24.get_height()
 
+
     draw_report_line("------------------------------", f"-------------", report_pos_y)
     report_pos_y += FONT24.get_height()
 
@@ -3407,6 +3468,8 @@ def draw_report_line(title, value, y_pos):
             if not flash_on: value_color = BLACK
 
 
+
+
     # Render and draw the title
     title_surface = FONT24.render(title, True, title_color)
     title_rect = title_surface.get_rect(
@@ -3419,6 +3482,13 @@ def draw_report_line(title, value, y_pos):
         topleft=(SCREEN_WIDTH-REPORT_STATUS_MARGIN, y_pos)
     )
     SCREEN.blit(value_surface, value_rect)
+
+    if title =="SHUTTLECRAFT:":
+        # Draw the lander indicator (LANDER_IMAGE)
+        offset_x = 10
+        for i in range(player.landers):
+            SCREEN.blit(LANDER_IMAGE, (SCREEN_WIDTH-REPORT_STATUS_MARGIN+value_surface.get_width()+offset_x, y_pos-3))
+            offset_x += (LANDER_IMAGE.get_width() + 3)
 
 # Function to draw the quadrant map with numbers
 
@@ -4061,13 +4131,13 @@ def showRoster():
 
     # SHOW INDIVIDUAL CREW PORTFOLIO -------------------------------------------------------------------------
 
-    pygame.draw.rect(SCREEN, DARK_GREY, pygame.Rect(CREW_ORIGIN_X,CREW_ORIGIN_Y, CREW_BOX_SIZE_WIDTH, 425))
+    pygame.draw.rect(SCREEN, NEAR_BLACK, pygame.Rect(CREW_ORIGIN_X,CREW_ORIGIN_Y, CREW_BOX_SIZE_WIDTH, 425))
     pygame.draw.rect(SCREEN, GREEN, pygame.Rect(CREW_ORIGIN_X,CREW_ORIGIN_Y, CREW_BOX_SIZE_WIDTH, 425),2)
 
-    pygame.draw.rect(SCREEN, DARK_GREY, pygame.Rect(CREW_ORIGIN_X+5,CREW_ORIGIN_Y+5, CREW_BOX_SIZE_WIDTH, 425))
+    pygame.draw.rect(SCREEN, NEAR_BLACK, pygame.Rect(CREW_ORIGIN_X+5,CREW_ORIGIN_Y+5, CREW_BOX_SIZE_WIDTH, 425))
     pygame.draw.rect(SCREEN, GREEN, pygame.Rect(CREW_ORIGIN_X+5,CREW_ORIGIN_Y+5, CREW_BOX_SIZE_WIDTH, 425),2)
 
-    pygame.draw.rect(SCREEN, DARK_GREY, pygame.Rect(CREW_ORIGIN_X+10,CREW_ORIGIN_Y+10, CREW_BOX_SIZE_WIDTH, 425))
+    pygame.draw.rect(SCREEN, NEAR_BLACK, pygame.Rect(CREW_ORIGIN_X+10,CREW_ORIGIN_Y+10, CREW_BOX_SIZE_WIDTH, 425))
     pygame.draw.rect(SCREEN, GREEN, pygame.Rect(CREW_ORIGIN_X+10,CREW_ORIGIN_Y+10, CREW_BOX_SIZE_WIDTH, 425),2)
 
     crewmate = highlighted_choice
@@ -4108,7 +4178,7 @@ def showRoster():
         ("COMMUNICATIONS... ", crewmate.communications, RED),
         ("PHYSICAL-SCIENCE..", crewmate.physicalScience, PURPLE),
         ("BIO-SCIENCE.......", crewmate.bioScience, GREEN),
-        ("MEDICAL.......... ", crewmate.medical, BLUE),
+        ("MEDICAL.......... ", crewmate.medical, LIGHT_BLUE),
     ]
 
     y_offset = 40
@@ -4118,7 +4188,7 @@ def showRoster():
         SCREEN.blit(label_surface, (CREW_DETAIL_START_X, CREW_DETAIL_START_Y+y_offset))
         SCREEN.blit(value_surface, (CREW_DETAIL_START_X+175, CREW_DETAIL_START_Y+y_offset))
         pygame.draw.rect(
-            SCREEN, LIGHT_GREY, pygame.Rect(CREW_DETAIL_START_X+200, CREW_DETAIL_START_Y+y_offset, 120, 12)
+            SCREEN, DARK_GREY, pygame.Rect(CREW_DETAIL_START_X+200, CREW_DETAIL_START_Y+y_offset, 120, 12)
         )
         pygame.draw.rect(
             SCREEN, color, pygame.Rect(CREW_DETAIL_START_X+200, CREW_DETAIL_START_Y+y_offset, value, 12)
@@ -4130,10 +4200,10 @@ def showRoster():
 
     if len(crewmate.extraSkills) > 0:
         listSkills = ", ".join(crewmate.extraSkills) + "."
-        listSkills_surface = FONT24.render(listSkills.capitalize(), True, WHITE)
+        listSkills_surface = FONT22.render(listSkills.capitalize(), True, WHITE)
         SCREEN.blit(listSkills_surface, (CREW_DETAIL_START_X+15, CREW_DETAIL_START_Y+330))
     else:
-        none_surface = FONT24.render("None", True, LIGHT_GREY)
+        none_surface = FONT22.render("None", True, LIGHT_GREY)
         SCREEN.blit(none_surface, (CREW_DETAIL_START_X+15, CREW_DETAIL_START_Y+330))
 
     notes_surface = FONT24.render("NOTES: ", True, WHITE)
@@ -4142,9 +4212,9 @@ def showRoster():
     trait_list = crewmate.goodTraits + crewmate.badTraits
     if trait_list:
         displayTraits = ", ".join(trait_list).capitalize() + "."
-        display_traits_surface = FONT24.render(displayTraits, True, WHITE)
+        display_traits_surface = FONT22.render(displayTraits, True, WHITE)
     else:
-        display_traits_surface = FONT24.render("None", True, LIGHT_GREY)
+        display_traits_surface = FONT22.render("None", True, LIGHT_GREY)
 
     SCREEN.blit(display_traits_surface, (CREW_DETAIL_START_X+15, CREW_DETAIL_START_Y+375))
 
@@ -4496,21 +4566,30 @@ def display_enemy_readout(screen):
     for target, direction, distance in targets_with_distances:
         this_font = FONT24
         text_color = GREEN
+        displayName = target.name
+
         if type(target) == Enemy: text_color = RED
         elif type(target) == Planet: 
             text_color = GREEN
             this_font = FONT22
+            if player.orbiting_planet == target: 
+                direction = "-"
+                distance  = "IN ORBIT"
+            # if len(player.orbiting_planet.away_team) >= 1:
+            #     displayName += "*"
+
+
         elif  type(target) == Base: 
             text_color = BLUE
             if player.docked: 
-                direction = "DOCKED"
+                direction = "-"
                 distance  = "DOCKED"
         elif  type(target) == Wormhole:
             text_color = PURPLE 
         
 
         # Render enemy name
-        target_name_text = this_font.render(target.name, True, text_color)
+        target_name_text = this_font.render(displayName, True, text_color)
         screen.blit(target_name_text, (SCAN_ORIGIN_X + SCAN_NAME_X -10, SCAN_ORIGIN_Y + y_offset))
 
         # Render enemy direction
@@ -4538,6 +4617,22 @@ def display_enemy_readout(screen):
             hull_text = this_font.render(f"--", True, GREY)
         hull_x = SCAN_ORIGIN_X + SCAN_HULL_X + (100 - hull_text.get_width()) // 2
         screen.blit(hull_text, (hull_x, SCAN_ORIGIN_Y + y_offset))
+
+
+        if type(target) == Planet:
+
+            if target.landers >= 1:
+                y_offset += FONT24.get_height()
+                target_name_text = this_font.render("  --- Shuttle", True, WHITE)
+                screen.blit(target_name_text, (SCAN_ORIGIN_X + SCAN_NAME_X -10, SCAN_ORIGIN_Y + y_offset))
+
+
+
+            if len(target.away_team) >= 1:
+                y_offset += FONT24.get_height()
+                target_name_text = this_font.render("  --- Away Team", True, WHITE)
+                screen.blit(target_name_text, (SCAN_ORIGIN_X + SCAN_NAME_X -10, SCAN_ORIGIN_Y + y_offset))
+
 
         y_offset += FONT24.get_height()  # Increment y-offset for the next enemy
 
@@ -4776,6 +4871,7 @@ def draw_log(screen):
 
 def draw_all_to_screen(): # for use when in a prompt.
     global projectile_group
+    global key_pressed
     draw_alert_info(SCREEN)
     
     draw_sector_map()
@@ -4828,7 +4924,7 @@ def main():
     # The log list to hold recent events
     
 
-
+    play_delayed_sound(MUSIC_CHANNEL, random.choice(VICTORY_DITTIES), 0.5)
     while running:
 
         ### UPDATE EVERYTHING ###############################################################################################
@@ -4964,6 +5060,7 @@ def main():
                         if player.inOrbit:
                             key_pressed =  True
                             if player.inOrbitRange is not None:
+                                ALARM_CHANNEL.play(NEXT_LINE)
                                 player.land_away_team()
                                 
 
