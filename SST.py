@@ -94,6 +94,7 @@ NEAR_BLACK = (25, 25, 25)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 MIDDLE_RED = (160, 0, 0)
+LOWER_RED = (100, 0, 0)
 DARK_RED = (50, 0, 0)
 ORANGE = (255, 165, 0)
 YELLOW = (255, 255, 0)
@@ -189,6 +190,7 @@ EARTHING_SHIP = pygame.image.load("earthling.png").convert_alpha()
 BASE_IMAGE = pygame.image.load("base.png").convert_alpha()
 BASE_IMAGE = pygame.transform.scale(BASE_IMAGE, (SQUARE_SIZE*.75, SQUARE_SIZE*.75))  # Scale to grid square size 
 
+DRONE_SHIP = pygame.image.load("drone.png").convert_alpha() 
 AVENGER_SHIP = pygame.image.load("avenger.png").convert_alpha() 
 INTRUDER_SHIP = pygame.image.load("intruder.png").convert_alpha() 
 GUARDIAN_SHIP = pygame.image.load("guardian.png").convert_alpha() 
@@ -198,6 +200,7 @@ DREADNAUGHT_SHIP = pygame.image.load("urq.png").convert_alpha()
 
 # Define a list of possible enemies with their respective images
 ENEMY_SHIP_LIST = [
+    ("DRONE", DRONE_SHIP),
     ("INTRUDER", INTRUDER_SHIP),
     ("GUARDIAN", GUARDIAN_SHIP),
     ("AVENGER", AVENGER_SHIP),
@@ -375,6 +378,8 @@ HURT = pygame.mixer.Sound("land_hrt.wav")
 PORTAL = pygame.mixer.Sound("portal.wav")
 TRANSPORTER_SOUND = pygame.mixer.Sound("transporter.mp3")
 TRANSPORTER_SOUND.set_volume(0.50)
+CLOAK_SOUND = pygame.mixer.Sound("cloak.wav")
+DECLOAK_SOUND = pygame.mixer.Sound("decloak.wav")
 
 SHUTTLE_LAUNCH = pygame.mixer.Sound("land_lau.wav")
 SHUTTLE_LAUNCH.set_volume(0.50)
@@ -660,6 +665,8 @@ class Player(pygame.sprite.Sprite):
                         
                         for i in range(killqty):
                             souls = self.soulsOnBoard.sprites()
+                            if len(souls) <= 0:
+                                break
                             casualty = souls[-1]
                             log_event(f"{casualty.fullInfo()} KILLED !")
                             casualty.kill()
@@ -968,19 +975,9 @@ class Player(pygame.sprite.Sprite):
 
             # Perform mining
             mined_crystals = self.orbiting_planet.mine_dilithium()
-            if (self.cargo + mined_crystals) > self.cargo_max:
-                print("No more cargo space!")
-                log_event(f"- CARGO BAY FULL -")
 
-                allcargo = self.cargo + mined_crystals
-                lost = allcargo - self.cargo_max
-                mined_crystals = mined_crystals - lost
-                self.cargo = self.cargo_max
-            else:
-                self.cargo += mined_crystals
 
-            print(f"The away team mined {mined_crystals} units of dilithium crystals!")
-            log_event(f"The away team mined {mined_crystals} units of dilithium crystals!", PURPLE)
+            
 
         elif not self.away_team_on_planet:
             # Sending the away team to the planet using a shuttle
@@ -1115,20 +1112,9 @@ class Player(pygame.sprite.Sprite):
             mined_crystals = self.orbiting_planet.mine_dilithium()
             
 
-            if (self.cargo + mined_crystals) > self.cargo_max:
-                print("No more cargo space")
-                log_event(f"- CARGO BAY FULL -")
 
-                allcargo = self.cargo + mined_crystals
-                lost = allcargo - self.cargo_max
-                mined_crystals = mined_crystals - lost
-                self.cargo = self.cargo_max
 
-            else:
-                self.cargo += mined_crystals
 
-            print(f"The away team mined {mined_crystals} units of dilithium crystals!")
-            log_event(f"The away team mined {mined_crystals} units of dilithium crystals!", PURPLE)
 
 
         elif not self.away_team_on_planet:
@@ -1219,7 +1205,7 @@ class Player(pygame.sprite.Sprite):
     def fire_phasers(self):
         """Fire phasers and damage enemies in the current sector, with a delay for each phaser blast."""
         phaser_power = prompt_phaser_power(SCREEN)
-        num_enemy = self.current_quadrant.count_enemies()
+        num_enemy = self.current_quadrant.count_enemies_not_cloaked()
         print("Firing Phasors @: " + str(num_enemy) + " Targets.")
         log_event(f"** FIRING PHASERS **  @ {phaser_power} Power", WHITE)
 
@@ -1315,9 +1301,13 @@ class Player(pygame.sprite.Sprite):
                     enemies_copy = self.current_quadrant.enemies[:]
 
                     for i, enemy in enumerate(enemies_copy):  # Iterate over a copy
-                        print("Phasor Target " + str(i))
-                        delay = i * 0.25  # 0.25 seconds between each phaser blast
-                        threading.Timer(delay, fire_single_phaser, args=(enemy,)).start()
+                        if not enemy.cloak_enabled:
+                            print("Phaser Target " + str(i))
+                            delay = i * 0.25  # 0.25 seconds between each phaser blast
+                            threading.Timer(delay, fire_single_phaser, args=(enemy,)).start()
+                        else:
+                            print("Unable to lock onto " + enemy.name)
+                            # log_event(f"-- UNABLE TO LOCK ONTO {enemy.name}", WHITE)
 
 
 
@@ -1537,35 +1527,29 @@ class Player(pygame.sprite.Sprite):
 
     def move(self, dx, dy):
         """Move the player in the grid, ensuring it stays within bounds and handles quadrant transitions."""
-        # Check if the player will move out of the current sector (grid bounds)
+        # Handle docking/orbiting states
+        if self.docked:
+            self.toggle_dock((self.grid_x, self.grid_y))
+            dx, dy = 0, 0
+        if self.inOrbit:
+            self.toggle_orbit((self.grid_x, self.grid_y))
+            dx, dy = 0, 0
 
-        # ALARM_CHANNEL.play(NEXT_LINE)
-
-        if player.docked : 
-            player.toggle_dock((self.grid_x,self.grid_y))
-            dx = 0
-            dy = 0
-
-        if player.inOrbit:
-            player.toggle_orbit((self.grid_x,self.grid_y))
-            dx = 0
-            dy = 0
-
+        # Calculate tentative new position
         new_x = self.grid_x + dx
         new_y = self.grid_y + dy
 
+        # Adjust energy and stardate based on movement
+        self.energy -= abs(dx) + abs(dy)
+        self.stardate += 0.1 * 0.95  # Small stardate increment per move
 
-        self.energy -= abs(dx)
-        self.energy -= abs(dy)
-        self.stardate += (.1 * 0.95)
-
+        # Resting action (no movement)
         if dx == 0 and dy == 0:
             print("Resting for Repairs...")
             self.energy += 1
             self.hull += 1
 
-
-        # Update last_move_direction and rotate/flip the sprite (same as before)
+        # Rotate or flip sprite based on movement direction
         if dx == -1:
             self.last_move_direction = "left"
             self.image = pygame.transform.rotate(self.orig_image, 90)
@@ -1579,101 +1563,225 @@ class Player(pygame.sprite.Sprite):
             self.last_move_direction = "down"
             self.image = pygame.transform.flip(self.orig_image, False, True)
 
-
-        # If within bounds, check if the new position is blocked by a star
+        # Check if movement stays within the current quadrant
         if 0 <= new_x < GRID_SIZE and 0 <= new_y < GRID_SIZE:
-            # Check if the new position has a star (blocking movement)
+            # Block movement if there's an obstacle (star, base, etc.)
             if self.current_quadrant.is_star_at(new_x, new_y):
                 print("Movement blocked by a star!")
                 log_event("Movement blocked by a star!")
-                return  # Don't move if there's a star in the way
-
+                return
             if self.current_quadrant.is_base_at(new_x, new_y):
                 print("Movement blocked by a base!")
                 log_event("Movement blocked by a base!")
-                return  # Don't move if there's a star in the way
-
+                return
             if self.current_quadrant.is_enemy_at(new_x, new_y):
                 print("Movement blocked by an enemy!")
                 log_event("Movement blocked by an enemy!")
-                return  # Don't move if there's a star in the way
-
-
+                return
             if self.current_quadrant.is_planet_at(new_x, new_y):
-                print("Movement blocked by an planet!")
-                log_event("Movement blocked by an planet!")
-                return  # Don't move if there's a star in the way
-
-            # Check if the player enters a wormhole
-            if self.check_if_entered_hole(new_x, new_y):
+                print("Movement blocked by a planet!")
+                log_event("Movement blocked by a planet!")
+                return
+            if self.check_if_entered_hole(new_x, new_y):  # Check for wormholes
                 return
 
-            # Update position if no star is blocking
+            # No obstacles, move within the quadrant
             self.grid_x = new_x
             self.grid_y = new_y
             self.update_position()
         else:
+            # Handle quadrant transition
+            quadrant_shift_x, quadrant_shift_y = 0, 0
 
-            # Handle moving to the next quadrant if out of bounds (same as before)
-            if dx == 1:  # Moving right
-                if self.quadrant_x < QUADRANT_SIZE - 1:
-                    self.quadrant_x += 1
-                    self.grid_x = 0
-                    self.current_quadrant = self.enter_sector(self.quadrant_x, self.quadrant_y)
-                    warp_factor = 1
-                    print(f"Warping to sector ({self.quadrant_x,}, {self.quadrant_y}) at Warp {warp_factor}.")
+            # Determine new quadrant and grid coordinates
+            if new_x < 0:  # Moving left out of bounds
+                quadrant_shift_x = -1
+                new_x += GRID_SIZE
+            elif new_x >= GRID_SIZE:  # Moving right out of bounds
+                quadrant_shift_x = 1
+                new_x -= GRID_SIZE
 
-                    if self.shields_on:
-                        self.energy -= (warp_factor * WARP_ENERGY_PER)*2
-                    else:
-                        self.energy -= (warp_factor * WARP_ENERGY_PER)
+            if new_y < 0:  # Moving up out of bounds
+                quadrant_shift_y = -1
+                new_y += GRID_SIZE
+            elif new_y >= GRID_SIZE:  # Moving down out of bounds
+                quadrant_shift_y = 1
+                new_y -= GRID_SIZE
 
-                    EXPLOSION_CHANNEL.play(WARP_SOUND)
-                    self.turn = 0
+            # Calculate new quadrant coordinates
+            new_quadrant_x = self.quadrant_x + quadrant_shift_x
+            new_quadrant_y = self.quadrant_y + quadrant_shift_y
 
-            elif dx == -1:  # Moving left
-                if self.quadrant_x > 0:
-                    self.quadrant_x -= 1
-                    self.grid_x = GRID_SIZE - 1
-                    self.current_quadrant = self.enter_sector(self.quadrant_x, self.quadrant_y)
-                    warp_factor = 1
-                    print(f"Warping to sector ({self.quadrant_x,}, {self.quadrant_y}) at Warp {warp_factor}.")
-                    if self.shields_on:
-                        self.energy -= (warp_factor * WARP_ENERGY_PER)*2
-                    else:
-                        self.energy -= (warp_factor * WARP_ENERGY_PER)
-                    EXPLOSION_CHANNEL.play(WARP_SOUND)
-                    self.turn = 0
+            # Check if new quadrant is valid (within galaxy bounds)
+            if 0 <= new_quadrant_x < QUADRANT_SIZE and 0 <= new_quadrant_y < QUADRANT_SIZE:
+                self.quadrant_x = new_quadrant_x
+                self.quadrant_y = new_quadrant_y
+                self.grid_x = new_x
+                self.grid_y = new_y
+                self.current_quadrant = self.enter_sector(self.quadrant_x, self.quadrant_y)
 
-            elif dy == 1:  # Moving down
-                if self.quadrant_y < QUADRANT_SIZE - 1:
-                    self.quadrant_y += 1
-                    self.grid_y = 0
-                    self.current_quadrant = self.enter_sector(self.quadrant_x, self.quadrant_y)
-                    warp_factor = 1
-                    print(f"Warping to sector ({self.quadrant_x,}, {self.quadrant_y}) at Warp {warp_factor}.")
-                    if self.shields_on:
-                        self.energy -= (warp_factor * WARP_ENERGY_PER)*2
-                    else:
-                        self.energy -= (warp_factor * WARP_ENERGY_PER)
-                    EXPLOSION_CHANNEL.play(WARP_SOUND)
-                    self.turn = 0
+                # Calculate warp cost
+                warp_factor = max(abs(quadrant_shift_x), abs(quadrant_shift_y))
+                energy_cost = warp_factor * WARP_ENERGY_PER
+                if self.shields_on:
+                    energy_cost *= 2
+                self.energy -= energy_cost
 
-            elif dy == -1:  # Moving up
-                if self.quadrant_y > 0:
-                    self.quadrant_y -= 1
-                    self.grid_y = GRID_SIZE - 1
-                    self.current_quadrant = self.enter_sector(self.quadrant_x, self.quadrant_y)
-                    warp_factor = 1
-                    print(f"Warping to sector ({self.quadrant_x,}, {self.quadrant_y}) at Warp {warp_factor}.")
-                    if self.shields_on:
-                        self.energy -= (warp_factor * WARP_ENERGY_PER)*2
-                    else:
-                        self.energy -= (warp_factor * WARP_ENERGY_PER)
-                    EXPLOSION_CHANNEL.play(WARP_SOUND)
-                    self.turn = 0
-            
+                # Play warp sound
+                EXPLOSION_CHANNEL.play(WARP_SOUND)
+                self.turn = 0
+
+                print(f"Warping to sector ({self.quadrant_x}, {self.quadrant_y}) at Warp {warp_factor}.")
+            else:
+                # Out of galaxy bounds, restrict movement
+                self.grid_x = max(0, min(self.grid_x, GRID_SIZE - 1))
+                self.grid_y = max(0, min(self.grid_y, GRID_SIZE - 1))
+                print("Cannot warp beyond galaxy boundaries!")
+
+            # Update position after quadrant transition
             self.update_position()
+
+
+    # def move(self, dx, dy):
+    #     """Move the player in the grid, ensuring it stays within bounds and handles quadrant transitions."""
+    #     # Check if the player will move out of the current sector (grid bounds)
+
+    #     # ALARM_CHANNEL.play(NEXT_LINE)
+
+    #     if player.docked : 
+    #         player.toggle_dock((self.grid_x,self.grid_y))
+    #         dx = 0
+    #         dy = 0
+
+    #     if player.inOrbit:
+    #         player.toggle_orbit((self.grid_x,self.grid_y))
+    #         dx = 0
+    #         dy = 0
+
+    #     new_x = self.grid_x + dx
+    #     new_y = self.grid_y + dy
+
+
+    #     self.energy -= abs(dx)
+    #     self.energy -= abs(dy)
+    #     self.stardate += (.1 * 0.95)
+
+    #     if dx == 0 and dy == 0:
+    #         print("Resting for Repairs...")
+    #         self.energy += 1
+    #         self.hull += 1
+
+
+    #     # Update last_move_direction and rotate/flip the sprite (same as before)
+    #     if dx == -1:
+    #         self.last_move_direction = "left"
+    #         self.image = pygame.transform.rotate(self.orig_image, 90)
+    #     elif dx == 1:
+    #         self.last_move_direction = "right"
+    #         self.image = pygame.transform.rotate(self.orig_image, -90)
+    #     elif dy == -1:
+    #         self.last_move_direction = "up"
+    #         self.image = self.orig_image
+    #     elif dy == 1:
+    #         self.last_move_direction = "down"
+    #         self.image = pygame.transform.flip(self.orig_image, False, True)
+
+
+    #     # If within bounds, check if the new position is blocked by a star
+    #     if 0 <= new_x < GRID_SIZE and 0 <= new_y < GRID_SIZE:
+    #         # Check if the new position has a star (blocking movement)
+    #         if self.current_quadrant.is_star_at(new_x, new_y):
+    #             print("Movement blocked by a star!")
+    #             log_event("Movement blocked by a star!")
+    #             return  # Don't move if there's a star in the way
+
+    #         if self.current_quadrant.is_base_at(new_x, new_y):
+    #             print("Movement blocked by a base!")
+    #             log_event("Movement blocked by a base!")
+    #             return  # Don't move if there's a star in the way
+
+    #         if self.current_quadrant.is_enemy_at(new_x, new_y):
+    #             print("Movement blocked by an enemy!")
+    #             log_event("Movement blocked by an enemy!")
+    #             return  # Don't move if there's a star in the way
+
+
+    #         if self.current_quadrant.is_planet_at(new_x, new_y):
+    #             print("Movement blocked by an planet!")
+    #             log_event("Movement blocked by an planet!")
+    #             return  # Don't move if there's a star in the way
+
+    #         # Check if the player enters a wormhole
+    #         if self.check_if_entered_hole(new_x, new_y):
+    #             return
+
+    #         # Update position if no star is blocking
+    #         self.grid_x = new_x
+    #         self.grid_y = new_y
+    #         self.update_position()
+    #     else:
+
+
+    #         # Handle moving to the next quadrant if out of bounds 
+    #         if dx == 1:  # Moving right
+    #             if self.quadrant_x < QUADRANT_SIZE - 1:
+    #                 self.quadrant_x += 1
+    #                 self.grid_x = 0
+    #                 self.current_quadrant = self.enter_sector(self.quadrant_x, self.quadrant_y)
+    #                 warp_factor = 1
+    #                 print(f"Warping to sector ({self.quadrant_x,}, {self.quadrant_y}) at Warp {warp_factor}.")
+
+    #                 if self.shields_on:
+    #                     self.energy -= (warp_factor * WARP_ENERGY_PER)*2
+    #                 else:
+    #                     self.energy -= (warp_factor * WARP_ENERGY_PER)
+
+    #                 EXPLOSION_CHANNEL.play(WARP_SOUND)
+    #                 self.turn = 0
+
+    #         elif dx == -1:  # Moving left
+    #             if self.quadrant_x > 0:
+    #                 self.quadrant_x -= 1
+    #                 self.grid_x = GRID_SIZE - 1
+    #                 self.current_quadrant = self.enter_sector(self.quadrant_x, self.quadrant_y)
+    #                 warp_factor = 1
+    #                 print(f"Warping to sector ({self.quadrant_x,}, {self.quadrant_y}) at Warp {warp_factor}.")
+    #                 if self.shields_on:
+    #                     self.energy -= (warp_factor * WARP_ENERGY_PER)*2
+    #                 else:
+    #                     self.energy -= (warp_factor * WARP_ENERGY_PER)
+    #                 EXPLOSION_CHANNEL.play(WARP_SOUND)
+    #                 self.turn = 0
+
+    #         elif dy == 1:  # Moving down
+    #             if self.quadrant_y < QUADRANT_SIZE - 1:
+    #                 self.quadrant_y += 1
+    #                 self.grid_y = 0
+    #                 self.current_quadrant = self.enter_sector(self.quadrant_x, self.quadrant_y)
+    #                 warp_factor = 1
+    #                 print(f"Warping to sector ({self.quadrant_x,}, {self.quadrant_y}) at Warp {warp_factor}.")
+    #                 if self.shields_on:
+    #                     self.energy -= (warp_factor * WARP_ENERGY_PER)*2
+    #                 else:
+    #                     self.energy -= (warp_factor * WARP_ENERGY_PER)
+    #                 EXPLOSION_CHANNEL.play(WARP_SOUND)
+    #                 self.turn = 0
+
+    #         elif dy == -1:  # Moving up
+    #             if self.quadrant_y > 0:
+    #                 self.quadrant_y -= 1
+    #                 self.grid_y = GRID_SIZE - 1
+    #                 self.current_quadrant = self.enter_sector(self.quadrant_x, self.quadrant_y)
+    #                 warp_factor = 1
+    #                 print(f"Warping to sector ({self.quadrant_x,}, {self.quadrant_y}) at Warp {warp_factor}.")
+    #                 if self.shields_on:
+    #                     self.energy -= (warp_factor * WARP_ENERGY_PER)*2
+    #                 else:
+    #                     self.energy -= (warp_factor * WARP_ENERGY_PER)
+    #                 EXPLOSION_CHANNEL.play(WARP_SOUND)
+    #                 self.turn = 0
+            
+    #         self.update_position()
 
     def successive_move(self):
         """Prompt the player for speed and direction, then move successively."""
@@ -2052,6 +2160,7 @@ class Base(pygame.sprite.Sprite):
 
         self.shields = 0
         self.hull = 0
+        self.cloak_enabled = False
 
 class Wormhole(pygame.sprite.Sprite):
     def __init__(self, grid_x, grid_y):
@@ -2071,6 +2180,8 @@ class Wormhole(pygame.sprite.Sprite):
 
         self.shields = 0
         self.hull = 0
+        self.hasCloakingDevice = False
+        self.cloak_enabled = False 
 
         self.rotation_angle = 0  # Current rotation angle
         self.last_update_time = pygame.time.get_ticks()  # Time tracker for rotation
@@ -2117,9 +2228,22 @@ class Enemy(pygame.sprite.Sprite):
         self.torpedo_qty = 10
         self.torpedo_damage = TORPEDO_DAMAGE
 
+        self.hasCloakingDevice = False
+        self.cloak_enabled = False
+
+        if self.name == "DRONE":
+            self.full_energy = random.randint(500, 1000)
+            self.full_shields = random.randint(50, 75)
+            self.full_hull = random.randint(50, 75)
+            self.min_phasor = 50
+            self.max_phasor = 100
+            self.speed = 2
+            self.torpedo_qty = 0
+            self.torpedo_damage = 0
+
         if self.name == "INTRUDER":
             self.full_energy = random.randint(600, 1200)
-            self.full_shields = random.randint(25, 75)
+            self.full_shields = random.randint(50, 100)
             self.full_hull = random.randint(50, 100)
             self.min_phasor = 100
             self.max_phasor = 200
@@ -2154,6 +2278,7 @@ class Enemy(pygame.sprite.Sprite):
             self.max_phasor = 450
             self.speed = 1
             self.torpedo_damage = TORPEDO_DAMAGE/2
+            self.hasCloakingDevice = True
 
         elif self.name == "PODSHIP":
             self.full_energy = random.randint(800 , 1600)
@@ -2369,6 +2494,20 @@ class Enemy(pygame.sprite.Sprite):
             if self.last_move_direction:
                 self.update_position()
 
+    def toggle_cloak(self):
+
+        if self.hasCloakingDevice:
+            if not self.cloak_enabled:
+                self.cloak_enabled = True 
+                EXPLOSION_CHANNEL.play(CLOAK_SOUND)
+                log_event(f"* {self.name} ACTIVATED CLOAK *",PURPLE)
+
+            elif self.cloak_enabled:
+                self.cloak_enabled = False 
+                EXPLOSION_CHANNEL.play(DECLOAK_SOUND)
+                log_event(f"* {self.name} DECLOAKED *",PURPLE)
+
+
 
     def update(self, current_sector, players_turn):
         """Update enemy's position with a chance to move to an adjacent open sector square within boundaries."""
@@ -2383,7 +2522,11 @@ class Enemy(pygame.sprite.Sprite):
                     if random.random() < .50:  # 50% chance to move
                         self.successive_move()
 
-                    if random.random() < .75:
+                    if self.hasCloakingDevice:
+                        if random.random() < .50 :
+                            self.toggle_cloak()
+
+                    if (random.random() < .75) and not self.cloak_enabled:
                         if (random.random() < .50) or (self.torpedo_qty <= 0):
                             self.enemy_fire_phaser(player)
                         else:
@@ -2489,9 +2632,6 @@ class Planet:
         self.name = name
         self.size = random.randint(1, 10)  # Size (e.g., 1 = small, 10 = massive)
 
-        # self.planet_type = planet_type
-        self.resources = self.generate_resources()
-        # self.inhabited = random.choice([True, False])  # Randomly determine if the planet is inhabited
 
         random_planet = random.choice(ALL_PLANET_IMAGES)
 
@@ -2506,6 +2646,9 @@ class Planet:
         self.away_team_on_planet = False
         self.away_team = pygame.sprite.Group() # List to store crew members on the planet
         self.landers = 0
+        self.cloak_enabled = False
+
+        self.mined_out = False
 
         print("planet init complete")
 
@@ -2527,21 +2670,39 @@ class Planet:
             return f"{base_name}"
 
     def mine_dilithium(self):
-        return random.randint(0,100)
+        mined_crystals = 0
+
+        if not self.mined_out:
+            mined_crystals = random.randint(0,100)
+            print(f"The away team mined {mined_crystals} units of dilithium crystals!")
+            log_event(f"The away team mined {mined_crystals} units of dilithium crystals!", PURPLE)
+
+            if random.random() > 0.50: 
+                self.mined_out = True
+                print(f"The planet is now completely mined.")
+                log_event(f"The planet is now completely mined.", PURPLE)
+        else:
+            print(f"The planet is completely mined.")
+            log_event(f"The planet is completely mined.", PURPLE)
 
 
-    def generate_planet_type(self):
-        """Randomly assign a type to the planet."""
-        planet_types = ["Earth-like", "Gas Giant", "Frozen", "Desert", "Volcanic", "Oceanic"]
-        return random.choice(planet_types)
+        # add crystals to the players cargohold
+        if (player.cargo + mined_crystals) > player.cargo_max:
+            print("No more cargo space")
+            log_event(f"- CARGO BAY FULL -")
 
-    def generate_resources(self):
-        """Randomly determine resource levels for the planet."""
-        return {
-            "minerals": random.randint(0, 100),
-            "water": random.randint(0, 100),
-            "energy": random.randint(0, 100)
-        }
+            allcargo = player.cargo + mined_crystals
+            lost = allcargo - player.cargo_max
+            mined_crystals = mined_crystals - lost
+            player.cargo = player.cargo_max
+
+        else:
+            player.cargo += mined_crystals
+
+        return mined_crystals
+
+
+
 
     def __str__(self):
         """String representation of the planet for debugging and display."""
@@ -2683,8 +2844,17 @@ class Sector:
         return len(self.bases)
 
     def count_enemies(self):
-        """Count the number of bases in the sector."""
+        """Count the number of enemy in the sector."""
         return len(self.enemies)
+
+    def count_enemies_not_cloaked(self):
+        """Count the number of enemy in the sector."""
+        count = 0 
+        for enemy in self.enemies:
+            if not enemy.cloak_enabled:
+                count += 1
+
+        return count
 
 
     def count_stars(self):
@@ -3146,7 +3316,7 @@ def draw_sector_map():
                 SCREEN.blit(circle_surface, (rect.centerx - transparent_radius, rect.centery - transparent_radius))
 
                 # pygame.draw.rect(SCREEN, YELLOW, rect, 1)  # Yellow grid line
-                pygame.draw.rect(SCREEN, DARK_GREEN, rect, 1)  # Yellow grid line
+                pygame.draw.rect(SCREEN, DARK_GREEN, rect, 1)  # GREEN grid line
 
             # Check for planets
             elif player.current_quadrant.is_planet_at(col, row):  # Add planet drawing logic
@@ -3158,7 +3328,10 @@ def draw_sector_map():
 
                 # Draw the planet's image
                 SCREEN.blit(planet.image, (planet_screen_x + offset_x, planet_screen_y + offset_y))
-                pygame.draw.rect(SCREEN, DARK_GREEN, rect, 1)  # Dark green grid line for planets
+
+                grid_color = DARK_GREEN
+                if planet == player.orbiting_planet: grid_color = GREEN
+                pygame.draw.rect(SCREEN, grid_color, rect, 1)  # Dark green grid line for planets
 
                 
 
@@ -3198,7 +3371,7 @@ def draw_sector_map():
                 offset_y = (SQUARE_SIZE - BASE_IMAGE.get_height()) // 2
 
                 SCREEN.blit(BASE_IMAGE, (base_screen_x + offset_x, base_screen_y + offset_y))
-                pygame.draw.rect(SCREEN, BLUE, rect, 1)  # Blue grid line for bases
+                grid_color = DARK_BLUE
 
                 # Check docking range
                 distance = abs(math.sqrt((player.grid_x - col) ** 2 + (player.grid_y - row) ** 2))
@@ -3210,8 +3383,11 @@ def draw_sector_map():
 
                         if player.docked:
                             player.condition = "BLUE"
+                            grid_color = BLUE
                     else:
                         player.condition = "RED"
+
+                pygame.draw.rect(SCREEN, grid_color, rect, 1)  # Blue grid line for bases
 
 
             # Check for wormholes
@@ -3244,28 +3420,34 @@ def draw_sector_map():
            # Check for enemies
             elif player.current_quadrant.is_enemy_at(col, row):
                 this_enemy = player.current_quadrant.is_enemy_at(col, row)
+
+                if not this_enemy.cloak_enabled:
                 
-                # Calculate the top-left corner of the grid square
-                enemy_screen_x = GRID_ORIGIN_X + (col * SQUARE_SIZE)
-                enemy_screen_y = GRID_ORIGIN_Y + (row * SQUARE_SIZE)
+                    # Calculate the top-left corner of the grid square
+                    enemy_screen_x = GRID_ORIGIN_X + (col * SQUARE_SIZE)
+                    enemy_screen_y = GRID_ORIGIN_Y + (row * SQUARE_SIZE)
+                    
+                    # Calculate the offset to center the enemy image within the grid square
+                    offset_x = (SQUARE_SIZE - this_enemy.image.get_width()) // 2
+                    offset_y = (SQUARE_SIZE - this_enemy.image.get_height()) // 2
+
+                    # Draw the enemy image centered in the grid square
+                    SCREEN.blit(this_enemy.image, (enemy_screen_x + offset_x, enemy_screen_y + offset_y))
+
+                    # If the enemy has shields, draw a blue circle around it
+                    if this_enemy.shields >= 1:
+                        center_x = enemy_screen_x + (SQUARE_SIZE // 2)  # X-coordinate of the square's center
+                        center_y = enemy_screen_y + (SQUARE_SIZE // 2)  # Y-coordinate of the square's center
+                        # radius = SQUARE_SIZE // 2  # Radius is half the square size
+                        radius = max(this_enemy.image.get_width(),this_enemy.image.get_height())
+                        radius = 4 + radius/2 
+                        pygame.draw.circle(SCREEN, BLUE, (center_x, center_y), radius, 2)  # Blue outline for shields
+
+                    # Draw a red grid line around the square for visual clarity
+                    pygame.draw.rect(SCREEN, LOWER_RED, (enemy_screen_x, enemy_screen_y, SQUARE_SIZE, SQUARE_SIZE), 1)
                 
-                # Calculate the offset to center the enemy image within the grid square
-                offset_x = (SQUARE_SIZE - this_enemy.image.get_width()) // 2
-                offset_y = (SQUARE_SIZE - this_enemy.image.get_height()) // 2
-
-                # Draw the enemy image centered in the grid square
-                SCREEN.blit(this_enemy.image, (enemy_screen_x + offset_x, enemy_screen_y + offset_y))
-
-                # If the enemy has shields, draw a blue circle around it
-                if this_enemy.shields >= 1:
-                    center_x = enemy_screen_x + (SQUARE_SIZE // 2)  # X-coordinate of the square's center
-                    center_y = enemy_screen_y + (SQUARE_SIZE // 2)  # Y-coordinate of the square's center
-                    # radius = SQUARE_SIZE // 2  # Radius is half the square size
-                    radius = 4 + this_enemy.image.get_width()/2 
-                    pygame.draw.circle(SCREEN, BLUE, (center_x, center_y), radius, 2)  # Blue outline for shields
-
-                # Draw a red grid line around the square for visual clarity
-                pygame.draw.rect(SCREEN, RED, (enemy_screen_x, enemy_screen_y, SQUARE_SIZE, SQUARE_SIZE), 1)
+                else: # CLOAKED
+                    pygame.draw.rect(SCREEN, DARK_GREEN, rect, 1)  # Regular grid line
 
 
             # Default grid square
@@ -4588,9 +4770,18 @@ def display_enemy_readout(screen):
             text_color = PURPLE 
         
 
+
+
+
         # Render enemy name
         target_name_text = this_font.render(displayName, True, text_color)
         screen.blit(target_name_text, (SCAN_ORIGIN_X + SCAN_NAME_X -10, SCAN_ORIGIN_Y + y_offset))
+
+        
+        if target.cloak_enabled:
+            text_color = PURPLE
+            direction = "?"
+            distance = "?"
 
         # Render enemy direction
         direction_text = this_font.render(direction, True, text_color)
@@ -4607,6 +4798,8 @@ def display_enemy_readout(screen):
         shield_text = this_font.render(f"{target.shields}", True, text_color)
         if target.shields <= 0:
             shield_text = this_font.render(f"--", True, GREY)
+        if target.cloak_enabled: 
+            shield_text = this_font.render(f"?", True, PURPLE)
 
         shield_x = SCAN_ORIGIN_X + SCAN_SHIELD_X + (100 - shield_text.get_width()) // 2
         screen.blit(shield_text, (shield_x, SCAN_ORIGIN_Y + y_offset))
@@ -4615,6 +4808,8 @@ def display_enemy_readout(screen):
         hull_text = this_font.render(f"{target.hull}", True, text_color)
         if target.hull <= 0:
             hull_text = this_font.render(f"--", True, GREY)
+        if target.cloak_enabled: 
+            hull_text = this_font.render(f"?", True, PURPLE)
         hull_x = SCAN_ORIGIN_X + SCAN_HULL_X + (100 - hull_text.get_width()) // 2
         screen.blit(hull_text, (hull_x, SCAN_ORIGIN_Y + y_offset))
 
