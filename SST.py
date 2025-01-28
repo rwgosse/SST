@@ -177,6 +177,9 @@ STARDATE_PER_REPAIR_TICK = 0.015
 CARGO_MAX = 100
 AWAY_TEAM_SIZE = 5 
 
+STANDARD_MOVE_SPEED = 0.95
+WARP_1_MOVE_SPEED = 1 
+
 
 
 ### END CONSTANTS ###########################################################################################################
@@ -491,6 +494,18 @@ class Player(pygame.sprite.Sprite):
 
         self.is_dead = False
 
+        self.damage_report_visible = False  # Toggle for the Damage Report
+        # Ship systems with functionality percentages (0 to 100) and time to repair
+        self.ship_systems = {
+            "Warp Engines": {"functionality": 100, "repair_time": 0},
+            "Short Range Sensors": {"functionality": 100, "repair_time": 0},
+            "Long Range Sensors": {"functionality": 100, "repair_time": 0},
+            "Phaser Controls": {"functionality": 100, "repair_time": 0},
+            "Torpedo Tubes": {"functionality": 100, "repair_time": 0},
+            "Navigation Computer": {"functionality": 100, "repair_time": 0},
+            "Shield Controls": {"functionality": 100, "repair_time": 0},
+        }
+
 
     def generate_all_sectors(self):
         """Generate and store a sector for each (quadrant_x, quadrant_y)."""
@@ -754,6 +769,19 @@ class Player(pygame.sprite.Sprite):
                     self.crewQty = len(self.soulsOnBoard)
                 
 
+            for system, stats in self.ship_systems.items():
+                if stats["functionality"] < 100 and stats["repair_time"] > 0:
+
+                    # Calculate the rate of functionality increase per unit of time
+                    stats["functionality"] += 1
+                    # Reduce repair time based on delta_time
+                    stats["repair_time"] -= 0.1
+
+                    # Clamp values to ensure they don't exceed limits
+                    if stats["functionality"] >= 100 or stats["repair_time"] <= 0:
+                        stats["repair_time"] = 0
+                        stats["functionality"] = 100  # Fully repaired
+
             if self.hull < MAX_HULL:
                 self.hull += HULL_REPAIR_TICK
                 repairing = True
@@ -814,7 +842,7 @@ class Player(pygame.sprite.Sprite):
         if self.docked == False:
             if self.inDockingRange is not None:
                 self.docked = True
-                self.stardate += (.1 * 0.95)
+                self.progress_stardate(STANDARD_MOVE_SPEED)
 
                 ALARM_CHANNEL.play(POWER_UP)
 
@@ -834,7 +862,7 @@ class Player(pygame.sprite.Sprite):
 
         elif self.docked:
             self.docked = False
-            self.stardate += (.1 * 0.95)
+            self.progress_stardate(STANDARD_MOVE_SPEED)
             self.offset_x = 0 
             self.offset_y = 0 
             print("Undocked from starbase!")
@@ -848,7 +876,7 @@ class Player(pygame.sprite.Sprite):
         if self.inOrbit == False:
             if self.inOrbitRange is not None:
                 self.inOrbit = True
-                self.stardate += (.1 * 0.95)
+                self.progress_stardate(STANDARD_MOVE_SPEED)
 
                 ALARM_CHANNEL.play(POWER_UP)
 
@@ -872,7 +900,7 @@ class Player(pygame.sprite.Sprite):
         elif self.inOrbit:
             self.inOrbit = False
             self.orbiting_planet = None
-            self.stardate += (.1 * 0.95)
+            self.progress_stardate(STANDARD_MOVE_SPEED)
             self.offset_x = 0 
             self.offset_y = 0 
             print("Left Planetary Orbit!")
@@ -929,7 +957,7 @@ class Player(pygame.sprite.Sprite):
             self.landers                    += 1 
             log_event(f"SHUTTLE RECALLED TO SHIP", WHITE)
             EXPLOSION_CHANNEL.play(SHUTTLE_RETURN)
-            self.stardate += (.1 * 0.95)
+            self.progress_stardate(STANDARD_MOVE_SPEED)
             return
 
         if self.away_team_on_planet and not self.orbiting_planet.away_team_on_planet:
@@ -955,7 +983,7 @@ class Player(pygame.sprite.Sprite):
                 self.landers                    -= 1  # Deduct one shuttle for the mission
                 self.orbiting_planet.landers    += 1
                 EXPLOSION_CHANNEL.play(SHUTTLE_LAUNCH)
-                self.stardate += (.1 * 0.95)
+                self.progress_stardate(STANDARD_MOVE_SPEED)
                 return
 
 
@@ -963,7 +991,7 @@ class Player(pygame.sprite.Sprite):
             print(f"Shuttle has successfully returned with the away team.")
             log_event(f"SHUTTLE RETURNED WITH AWAY TEAM", GREEN)
             EXPLOSION_CHANNEL.play(SHUTTLE_RETURN)
-            self.stardate += (.1 * 0.95)
+            self.progress_stardate(STANDARD_MOVE_SPEED)
 
 
             # Successfully retrieve the away team
@@ -1021,7 +1049,7 @@ class Player(pygame.sprite.Sprite):
             print(f"The away team has successfully landed on {self.orbiting_planet.name}.")
             log_event(f"AWAY TEAM HAS LANDED ON {self.orbiting_planet.name}.", WHITE)
             EXPLOSION_CHANNEL.play(SHUTTLE_LAUNCH)
-            self.stardate += (.1 * 0.95)
+            self.progress_stardate(STANDARD_MOVE_SPEED)
             self.soulsOnBoard.remove(away_team)
             self.orbiting_planet.away_team.add(away_team)
 
@@ -1163,6 +1191,68 @@ class Player(pygame.sprite.Sprite):
             EXPLOSION_CHANNEL.play(HURT)
 
         self.crewQty = len(self.soulsOnBoard)
+
+
+    def update_system_repairs(self, delta_time):
+        """Update ship system repair progress."""
+        for system, stats in self.ship_systems.items():
+            if stats["functionality"] < 100 and stats["repair_time"] > 0:
+                # Calculate the rate of functionality increase per unit of time
+                repair_rate = (100 - stats["functionality"]) / stats["repair_time"]
+
+                # Increase functionality based on the elapsed time and repair rate
+                functionality_increase = repair_rate * delta_time
+                stats["functionality"] += functionality_increase
+
+                # Reduce repair time based on delta_time
+                stats["repair_time"] -= delta_time
+
+                # Clamp values to ensure they don't exceed limits
+                if stats["functionality"] >= 100 or stats["repair_time"] <= 0:
+                    stats["repair_time"] = 0
+                    stats["functionality"] = 100  # Fully repaired
+
+    def inflict_random_damage(self):
+        """Inflict random damage to a random ship system."""
+        if not self.ship_systems:  # Ensure there are systems to damage
+            return
+
+        print("chance of system damage")
+        if random.random() < 0.75:
+
+            num_of_damaged_systems = random.choice([1,1,1,2,2,3])
+            systems_list = list(self.ship_systems.keys())
+
+            for i in range(num_of_damaged_systems):
+
+                # Randomly select a system
+                system = random.choice(systems_list)
+                systems_list.remove(system)
+
+                # Randomly determine the severity of damage (e.g., 10% to 60%)
+                damage = random.randint(10, 60)
+
+                # Randomly determine the repair time needed (e.g., 1.0 to 10.0 stardates)
+                repair_time = round(random.uniform(1.0, 10.0), 1)
+
+                # Inflict damage to the selected system
+                self.inflict_damage(system, damage, repair_time)
+
+
+    def inflict_damage(self, system, damage, repair_time):
+        """Apply damage to a specific ship system."""
+        if system in self.ship_systems:
+            stats = self.ship_systems[system]
+
+            # Decrease functionality based on damage, ensuring it doesn't go below 0
+            stats["functionality"] = max(0, stats["functionality"] - damage)
+
+            # Set the repair time if the system is damaged
+            if stats["functionality"] < 100:
+                stats["repair_time"] = repair_time
+
+            print(f"{system} damaged by {damage}%. Repair time: {repair_time} stardates.")
+            log_event(f"{system} damaged by {damage}%. Repair time: {repair_time}", RED)
 
     def shields_toggle(self):
         global current_index
@@ -1391,12 +1481,17 @@ class Player(pygame.sprite.Sprite):
             delay = i * 0.25  # Delay of 0.25 seconds between torpedoes
             threading.Timer(delay, fire_single_torpedo, args=(i, rise, run)).start()
 
+    def progress_stardate(self, factor):
+        self.update_system_repairs(.1 * factor)
+        self.stardate += (.1 * factor)
+
+
     def activate_warp(self):
         """Prompt the player to select a warp factor and move the player."""
         warp_factor = prompt_warp_factor(SCREEN)
 
         if warp_factor > 0:
-            self.stardate += (.1 * warp_factor)
+            self.progress_stardate(warp_factor)
 
 
             """Display a compass guide showing the warp direction numbers."""
@@ -1541,7 +1636,8 @@ class Player(pygame.sprite.Sprite):
 
         # Adjust energy and stardate based on movement
         self.energy -= abs(dx) + abs(dy)
-        self.stardate += 0.1 * 0.95  # Small stardate increment per move
+
+        self.progress_stardate(STANDARD_MOVE_SPEED)
 
         # Resting action (no movement)
         if dx == 0 and dy == 0:
@@ -2066,6 +2162,10 @@ class Torpedo(pygame.sprite.Sprite):
             enemy.shields -= self.damage
             enemy.shield_energy -= self.damage
 
+        if (enemy == player) and (self.owner != player): # IS THIS THE PLAYER BEING SHOT AT? 
+            if player.shields < BASE_RELOAD_ENERGY/2:
+                player.inflict_random_damage()
+
         
         print(f"     {enemy.name} Shields: {shields_before} -> {enemy.shields}")
         print(f"     {enemy.name} Hull: {hull_before} -> {enemy.hull}")
@@ -2400,6 +2500,10 @@ class Enemy(pygame.sprite.Sprite):
                 player.shields -= absorbed
                 player.shield_energy -= absorbed
                 damage -= absorbed
+
+            if player.shields < BASE_RELOAD_ENERGY/2:
+                player.inflict_random_damage()
+
 
             if damage > 0 and player.hull > 0:
                 player.hull -= damage
@@ -4022,8 +4126,17 @@ def prompt_crew_roster():
                 print("toggle roster off")
                 key_pressed = False
                 showing_roster = False
+                player.damage_report_visible = False
                 ALARM_CHANNEL.play(NEXT_LINE)
-            if event.key == pygame.K_UP:
+
+            elif event.key == pygame.K_r:
+                print("DAMAGE REPORT TOGGLE")
+                key_pressed = False
+                showing_roster = False
+                player.damage_report_visible = True
+                ALARM_CHANNEL.play(NEXT_LINE)
+
+            elif event.key == pygame.K_UP:
 
                 if len(player.soulsOnBoard) > 0:
                     if roster_selected_line != 0:
@@ -4034,7 +4147,7 @@ def prompt_crew_roster():
                         roster_selected_line = len(player.soulsOnBoard)-1
 
                 else: no.play()
-            if event.key == pygame.K_DOWN:
+            elif event.key == pygame.K_DOWN:
 
                 if len(player.soulsOnBoard) > 0:
                     if roster_selected_line < (len(player.soulsOnBoard)-1):
@@ -5061,6 +5174,149 @@ def draw_log(screen):
         text_surface = FONT22.render(event, True, event_color)
         screen.blit(text_surface, (LOG_ORIGIN_X + LOG_PADDING, y_pos))
 
+def prompt_damage_report():
+
+    global key_pressed
+    global overlay_images
+    global showing_roster
+
+
+    key_pressed = False
+
+    # Handle events
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+            player.damage_report_visible = False
+
+        elif event.type == pygame.KEYDOWN:  # Check for key presses
+            key_pressed = False
+            if event.key == pygame.K_r:
+                player.damage_report_visible = False
+                showing_roster = False
+                key_pressed = False
+                ALARM_CHANNEL.play(NEXT_LINE)
+
+            elif event.key == pygame.K_c:
+                if not showing_roster:
+                    print("toggle roster on ")
+                    # log_event("Viewing Roster")
+                    key_pressed = False
+                    player.damage_report_visible = False
+                    showing_roster = True
+                    # prompt_crew_roster(showing_roster)
+                    roster_selected_line = 0
+                    ALARM_CHANNEL.play(NEXT_LINE)
+
+            elif event.key == pygame.K_SPACE or event.key == pygame.K_KP_2: # REST
+                player.move(0, 0)
+                key_pressed = True
+
+    # print("show roster")
+    SCREEN.fill(BLACK)
+
+    ##draw_all_to_screen()
+    
+    draw_alert_info(SCREEN)
+    
+    # draw_sector_map()
+    
+    # projectile_group.update() 
+    # for projectile in projectile_group:
+    #     if not projectile.out_of_bounds():
+    #         projectile.draw(SCREEN)
+
+    draw_reports()
+    display_enemy_readout(SCREEN)
+    draw_quadrant_map(player)
+
+    draw_captain(overlay_images,key_pressed)
+    draw_log(SCREEN)
+
+    draw_damage_report()
+
+    pygame.display.flip()
+    # Cap the frame rate
+    clock.tick(FPS)
+
+def draw_damage_report():
+    """Render the Damage Report screen."""
+    if not player.damage_report_visible:
+        return  # Don't draw if the report is not toggled on
+
+    # Dimensions and starting position for the report
+    report_x = GRID_ORIGIN_X
+    report_y = GRID_ORIGIN_Y
+    report_width = SQUARE_SIZE * GRID_SIZE
+    report_height = SQUARE_SIZE * GRID_SIZE
+
+    outline_color =  GREEN 
+    if player.condition == "RED": outline_color =  RED
+    if player.condition == "BLUE": outline_color =  BLUE  
+
+    # Draw background
+    pygame.draw.rect(SCREEN, (BLACK), (report_x, report_y, report_width, report_height))
+    pygame.draw.rect(SCREEN, (outline_color), (report_x, report_y, report_width, report_height), 2)  # Border
+
+    # Title
+    # title_font = pygame.font.Font(None, 36)
+    title_text = FONT24.render("DAMAGE REPORT", True, (0, 255, 0))
+    title_x = report_x + (report_width - title_text.get_width()) // 2
+    title_y = report_y + 10
+    SCREEN.blit(title_text, (title_x, title_y))
+
+    # Headers
+    # headers_font = pygame.font.Font(None, 28)
+    header_y = title_y + 40  # Below the title
+    header_x_spacing = 20  # Spacing between columns
+
+    system_header = FONT24.render("SYSTEM", True, (255, 255, 255))
+    state_header = FONT24.render("State of Repair:", True, (255, 255, 255))
+    time_header = FONT24.render("Time to Repair:", True, (255, 255, 255))
+
+    SCREEN.blit(system_header, (report_x + header_x_spacing, header_y))
+    SCREEN.blit(state_header, (report_x + report_width - 360, header_y))  # Adjust position for center alignment
+    SCREEN.blit(time_header, (report_x + report_width - 180, header_y))   # Adjust position for center alignment
+
+    line_header = FONT24.render("-------------------------------------------", True, GREEN)
+    SCREEN.blit(line_header, (report_x + header_x_spacing, header_y+10))
+    line_header = FONT24.render("--------------------------", True, GREEN)
+    SCREEN.blit(line_header, (report_x + report_width - 360, header_y+10))
+    SCREEN.blit(line_header, (report_x + report_width - 180, header_y+10))
+
+    # Display each ship system
+    # system_font = pygame.font.Font(None, 28)
+    line_y = header_y + 40  # Start below the headers
+    for system, stats in player.ship_systems.items():
+        functionality = stats["functionality"]
+        repair_time = stats["repair_time"]
+
+        # Determine color for functionality percentage
+        if functionality >= 75:
+            color = (0, 255, 0)  # Green
+        elif functionality >= 50:
+            color = (255, 255, 0)  # Yellow
+        else:
+            color = (255, 0, 0)  # Red
+
+        # Render system name
+        system_text = FONT24.render(system, True, (255, 255, 255))
+        SCREEN.blit(system_text, (report_x + header_x_spacing, line_y))
+
+        # Render functionality percentage
+        functionality_text = FONT24.render(f"{int(functionality)}%", True, color)
+        SCREEN.blit(functionality_text, (report_x + report_width - 320, line_y))
+
+        # Render repair time if the system isn't at 100%
+        if functionality < 100:
+            repair_text = FONT24.render(f"{repair_time:.1f} stardates", True, (255, 255, 255))
+            SCREEN.blit(repair_text, (report_x + report_width - 160, line_y))
+
+        # Move to the next line
+        line_y += 30
+
+
+
 
 
 
@@ -5153,13 +5409,13 @@ def main():
 
             elif event.type == pygame.KEYDOWN:  # Check for key presses
 
-                if players_turn and (len(projectile_group) ==0) and not showing_roster:
+                if players_turn and (len(projectile_group) ==0) and not showing_roster and not player.damage_report_visible:
 
                     if event.key == pygame.K_m:
                         player.successive_move()
                         key_pressed = True
                     
-                    if event.key == pygame.K_LEFT or event.key ==pygame.K_KP_4:
+                    elif event.key == pygame.K_LEFT or event.key ==pygame.K_KP_4:
                         player.move(-1, 0)
                         key_pressed = True
                         
@@ -5173,7 +5429,7 @@ def main():
                     elif event.key == pygame.K_DOWN or event.key == pygame.K_KP_2:
                         player.move(0, 1)
                         key_pressed = True
-                    elif event.key == pygame.K_SPACE or event.key == pygame.K_r or event.key == pygame.K_KP_2: # REST
+                    elif event.key == pygame.K_SPACE or event.key == pygame.K_KP_2: # REST
                         player.move(0, 0)
                         key_pressed = True
 
@@ -5257,6 +5513,12 @@ def main():
                             if player.inOrbitRange is not None:
                                 ALARM_CHANNEL.play(NEXT_LINE)
                                 player.land_away_team()
+
+                    elif event.key == pygame.K_r:
+                        print("DAMAGE REPORT TOGGLE")
+                        player.damage_report_visible = True
+                        key_pressed =  False
+                        ALARM_CHANNEL.play(NEXT_LINE)
                                 
 
                     elif event.key == pygame.K_KP_PLUS:
@@ -5306,8 +5568,15 @@ def main():
                             if enemy.trigger_update_time is None:
                                 enemy.trigger_update(players_turn)
 
-                while showing_roster:
-                    prompt_crew_roster()
+
+                while showing_roster or player.damage_report_visible:
+                    while showing_roster:
+                        prompt_crew_roster()
+
+                    while player.damage_report_visible:
+                        prompt_damage_report()
+
+                
 
                     
                 player.turn += 1
@@ -5362,7 +5631,22 @@ def main():
                     player.is_dead = False
 
             SCREEN.fill(BLACK)
-            draw_all_to_screen()
+            draw_alert_info(SCREEN)
+    
+            draw_sector_map()
+            
+            projectile_group.update() 
+            for projectile in projectile_group:
+                if not projectile.out_of_bounds():
+                    projectile.draw(SCREEN)
+
+            draw_reports()
+            display_enemy_readout(SCREEN)
+            draw_quadrant_map(player)
+
+            # draw_captain(overlay_images,key_pressed)
+
+            draw_log(SCREEN)
             ### FLIP AND TICK ###
             pygame.display.flip()
             # Cap the frame rate
