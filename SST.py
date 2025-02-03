@@ -25,6 +25,7 @@ FPS = 60  # Frames per second
 ### DEFINE CONSTANTS: #######################################################################################################
 
 # Fonts
+FONT20 = pygame.font.Font(None, 20)
 FONT22 = pygame.font.Font(None, 22)
 FONT24 = pygame.font.Font(None, 24)
 
@@ -76,7 +77,7 @@ CREW_DETAIL_START_Y  = CREW_ORIGIN_Y + 20
 CREW_BOX_SIZE_WIDTH = (SQUARE_SIZE * GRID_SIZE) - 40
 
 LOG_ORIGIN_X = SCAN_ORIGIN_X -10
-LOG_ORIGIN_Y = GRID_ORIGIN_Y + (SQUARE_SIZE*4)
+LOG_ORIGIN_Y = GRID_ORIGIN_Y + (SQUARE_SIZE*4.25)
 LOG_WIDTH = 440  # Width of the log display
 LOG_HEIGHT = SQUARE_SIZE*3.5  # Height of the log display
 LOG_PADDING = 10  # Padding inside the log box
@@ -497,14 +498,48 @@ class Player(pygame.sprite.Sprite):
         self.damage_report_visible = False  # Toggle for the Damage Report
         # Ship systems with functionality percentages (0 to 100) and time to repair
         self.ship_systems = {
-            "Warp Engines": {"functionality": 100, "repair_time": 0},
-            "Short Range Sensors": {"functionality": 100, "repair_time": 0},
-            "Long Range Sensors": {"functionality": 100, "repair_time": 0},
-            "Phaser Controls": {"functionality": 100, "repair_time": 0},
-            "Torpedo Tubes": {"functionality": 100, "repair_time": 0},
-            "Navigation Computer": {"functionality": 100, "repair_time": 0},
-            "Shield Controls": {"functionality": 100, "repair_time": 0},
+            # Propulsion Systems  
+            "Warp Engines": {"functionality": 100, "repair_time": 0, "type": "Propulsion"},  
+            "Impulse Engines": {"functionality": 100, "repair_time": 0, "type": "Propulsion"},  
+            "Thrusters": {"functionality": 100, "repair_time": 0, "type": "Propulsion"},  
+            "Inertial Dampeners": {"functionality": 100, "repair_time": 0, "type": "Propulsion"},  
+
+            # Sensor & Scanning Systems  
+            "Short Range Sensors": {"functionality": 100, "repair_time": 0, "type": "Sensors"},  
+            "Long Range Sensors": {"functionality": 100, "repair_time": 0, "type": "Sensors"},  
+
+            # Weapons Systems  
+            "Phaser Controls": {"functionality": 100, "repair_time": 0, "type": "Weapons"},  
+            "Torpedo Tubes": {"functionality": 100, "repair_time": 0, "type": "Weapons"},  
+
+            # Defensive Systems  
+            "Shield Controls": {"functionality": 100, "repair_time": 0, "type": "Defense"},  
+            "Deflector Array": {"functionality": 100, "repair_time": 0, "type": "Defense"},  
+            "Structural Integrity Field": {"functionality": 100, "repair_time": 0, "type": "Defense"},  
+
+            # Navigation & Control Systems  
+            "Navigation Computer": {"functionality": 100, "repair_time": 0, "type": "Navigation"},  
+
+            # Engineering & Repair Systems  
+            "Damage Controls": {"functionality": 100, "repair_time": 0, "type": "Engineering"},  
+            "Power Distribution Grid": {"functionality": 100, "repair_time": 0, "type": "Engineering"},  
+
+            # Utility & Support Systems  
+            "Transporters": {"functionality": 100, "repair_time": 0, "type": "Utility"},  
+            "Communications": {"functionality": 100, "repair_time": 0, "type": "Utility"},  
+            "Tractor Beam": {"functionality": 100, "repair_time": 0, "type": "Utility"},  
+            "Life Support": {"functionality": 100, "repair_time": 0, "type": "Utility"},  
+
+            # Computer & AI Systems  
+            "Main Computer Core": {"functionality": 100, "repair_time": 0, "type": "Computer"},  
+            "Library Database": {"functionality": 100, "repair_time": 0, "type": "Computer"},  
+
+            # Medical & Science Systems  
+            "Medical Bay Equipment": {"functionality": 100, "repair_time": 0, "type": "Medical"},  
+            "Science Lab Sensors": {"functionality": 100, "repair_time": 0, "type": "Medical"},  
+            "Biohazard Containment": {"functionality": 100, "repair_time": 0, "type": "Medical"},  
         }
+
 
 
     def generate_all_sectors(self):
@@ -2153,9 +2188,13 @@ class Torpedo(pygame.sprite.Sprite):
         
 
         if self.damage >= enemy.shields:
-            remaining_damage = self.damage - enemy.shields
-            enemy.shields = 0
-            enemy.shield_energy = 0
+            remaining_damage = self.damage
+            
+            if enemy.shields > 0:
+                remaining_damage = self.damage - enemy.shields
+                enemy.shields = 0
+                enemy.shield_energy = 0
+
             enemy.hull -= remaining_damage
             log_event(f"     {enemy.name} :: SHIELDS DOWN ::", BLUE)
         else:
@@ -2163,7 +2202,7 @@ class Torpedo(pygame.sprite.Sprite):
             enemy.shield_energy -= self.damage
 
         if (enemy == player) and (self.owner != player): # IS THIS THE PLAYER BEING SHOT AT? 
-            if player.shields < BASE_RELOAD_ENERGY/2:
+            if player.shields < BASE_RELOAD_SHIELD/2:
                 player.inflict_random_damage()
 
         
@@ -2379,6 +2418,7 @@ class Enemy(pygame.sprite.Sprite):
             self.speed = 1
             self.torpedo_damage = TORPEDO_DAMAGE/2
             self.hasCloakingDevice = True
+            self.cloak_enabled = bool(random.getrandbits(1))
 
         elif self.name == "PODSHIP":
             self.full_energy = random.randint(800 , 1600)
@@ -2501,7 +2541,7 @@ class Enemy(pygame.sprite.Sprite):
                 player.shield_energy -= absorbed
                 damage -= absorbed
 
-            if player.shields < BASE_RELOAD_ENERGY/2:
+            if player.shields < BASE_RELOAD_SHIELD/2:
                 player.inflict_random_damage()
 
 
@@ -2753,6 +2793,33 @@ class Planet:
         self.cloak_enabled = False
 
         self.mined_out = False
+
+        ## INFO & DANGERS ##
+
+        self.orbit_distance     = 1.0 # orbit_distance
+        self.atmosphere         = 1.0 #atmosphere
+        self.temp               = 1.0 #temp # self.thermal       = thermal
+        self.weather            = 1.0 #weather # self.hazard        = hazard
+        self.tectonics          = 1.0 #tectonics
+
+        self.mass               = 1.0 #mass
+        self.radius             = 1.0 #radius
+        self.gravity            = 1.0 #gravity
+        self.day                = 1.0 #day
+        self.axialTilt          = 1.0 #axialTilt
+
+        
+        
+        # RESOUCES 
+        self.bioHazard     = 1 #bioHazard 
+        self.bioUnits      = 0 #bioUnits
+        self.currentBioUnits = 1 #self.bioUnits
+
+        self.startMinValue      = 1 #minValue
+        self.startMinVolume     = 1 #minVolume
+        self.currentMinValue = 1 #minValue
+        self.currentMinVolume =1 # minVolume
+
 
         print("planet init complete")
 
@@ -3917,7 +3984,7 @@ def draw_quadrant_map(player):
 
 
 
-            num_enemy = this_sector.count_enemies()
+            num_enemy = this_sector.count_enemies_not_cloaked()
             num_bases = this_sector.count_bases()
             num_stars = this_sector.count_stars()
 
@@ -4166,6 +4233,7 @@ def prompt_crew_roster():
     ##draw_all_to_screen()
     
     draw_alert_info(SCREEN)
+    draw_orbital_scan()
     
     # draw_sector_map()
     
@@ -5228,6 +5296,7 @@ def prompt_damage_report():
 
     draw_reports()
     display_enemy_readout(SCREEN)
+    draw_orbital_scan()
     draw_quadrant_map(player)
 
     draw_captain(overlay_images,key_pressed)
@@ -5267,29 +5336,35 @@ def draw_damage_report():
 
     # Headers
     # headers_font = pygame.font.Font(None, 28)
-    header_y = title_y + 40  # Below the title
+    header_y = title_y + 35  # Below the title
     header_x_spacing = 20  # Spacing between columns
 
-    system_header = FONT24.render("SYSTEM", True, (255, 255, 255))
-    state_header = FONT24.render("State of Repair:", True, (255, 255, 255))
-    time_header = FONT24.render("Time to Repair:", True, (255, 255, 255))
+    system_header = FONT22.render("SYSTEM", True, (255, 255, 255))
+    state_header = FONT22.render("State of Repair:", True, (255, 255, 255))
+    time_header = FONT22.render("Time to Repair:", True, (255, 255, 255))
 
     SCREEN.blit(system_header, (report_x + header_x_spacing, header_y))
     SCREEN.blit(state_header, (report_x + report_width - 360, header_y))  # Adjust position for center alignment
     SCREEN.blit(time_header, (report_x + report_width - 180, header_y))   # Adjust position for center alignment
 
-    line_header = FONT24.render("-------------------------------------------", True, GREEN)
+    line_header = FONT22.render("-------------------------------------------", True, GREEN)
     SCREEN.blit(line_header, (report_x + header_x_spacing, header_y+10))
-    line_header = FONT24.render("--------------------------", True, GREEN)
+    line_header = FONT22.render("--------------------------", True, GREEN)
     SCREEN.blit(line_header, (report_x + report_width - 360, header_y+10))
     SCREEN.blit(line_header, (report_x + report_width - 180, header_y+10))
 
     # Display each ship system
-    # system_font = pygame.font.Font(None, 28)
     line_y = header_y + 40  # Start below the headers
+    previous_type = None  # Track the previous system type for spacing
+
     for system, stats in player.ship_systems.items():
         functionality = stats["functionality"]
         repair_time = stats["repair_time"]
+        system_type = stats["type"]  # Get the type of the system
+
+        # Extra gap if the system type has changed
+        if previous_type is not None and system_type != previous_type:
+            line_y += 10  # Extra spacing between system type groups
 
         # Determine color for functionality percentage
         if functionality >= 75:
@@ -5300,22 +5375,107 @@ def draw_damage_report():
             color = (255, 0, 0)  # Red
 
         # Render system name
-        system_text = FONT24.render(system, True, (255, 255, 255))
+        system_text = FONT22.render(system, True, (255, 255, 255))
         SCREEN.blit(system_text, (report_x + header_x_spacing, line_y))
 
         # Render functionality percentage
-        functionality_text = FONT24.render(f"{int(functionality)}%", True, color)
+        functionality_text = FONT22.render(f"{int(functionality)}%", True, color)
         SCREEN.blit(functionality_text, (report_x + report_width - 320, line_y))
 
         # Render repair time if the system isn't at 100%
         if functionality < 100:
-            repair_text = FONT24.render(f"{repair_time:.1f} stardates", True, (255, 255, 255))
+            repair_text = FONT22.render(f"{repair_time:.1f} stardates", True, (255, 255, 255))
             SCREEN.blit(repair_text, (report_x + report_width - 160, line_y))
 
         # Move to the next line
-        line_y += 30
+        line_y += 20  # Standard spacing between systems
+
+        # Update previous system type
+        previous_type = system_type
 
 
+### render the planets info if we are in orbit
+def draw_orbital_scan():
+    if player.inOrbit and (player.orbiting_planet is not None):
+        planet = player.orbiting_planet  # Reference for cleaner code
+
+        # Define the scan box
+        scan_box_rect = pygame.Rect(LOG_ORIGIN_X, GRID_ORIGIN_Y + SQUARE_SIZE * 2, LOG_WIDTH, SQUARE_SIZE * 2)
+        pygame.draw.rect(SCREEN, GREEN, scan_box_rect, 2)  # Box outline
+
+        # Center the header text above the box
+        header_text = FONT24.render("ORBITAL SCAN:", True, GREEN)
+        header_x = LOG_ORIGIN_X + (LOG_WIDTH // 2) - (header_text.get_width() // 2)  # Centered
+        header_y = GRID_ORIGIN_Y - 24 + SQUARE_SIZE * 2
+        SCREEN.blit(header_text, (header_x, header_y))
+
+        # Show the planet's name
+        name_text = FONT24.render(planet.name, True, GREEN)
+        name_x = LOG_ORIGIN_X + (LOG_WIDTH // 2) - (name_text.get_width() // 2)  # Centered
+        name_y = GRID_ORIGIN_Y + 10 + SQUARE_SIZE * 2
+        SCREEN.blit(name_text, (name_x, name_y))
+
+        # Center the arc within the box
+        arc_width, arc_height = 200, 200
+        arc_x = LOG_ORIGIN_X + (LOG_WIDTH // 2) - (arc_width // 2)  # Center horizontally
+        arc_y = GRID_ORIGIN_Y - 2 + SQUARE_SIZE * 2.75
+
+        showPlanetrect = pygame.Rect(arc_x, arc_y, arc_width, arc_height)
+        pygame.draw.arc(SCREEN, GREEN, showPlanetrect, 0, 3.14, 4)  # Draw arc
+
+        # Planetary Information - Labels in BLUE, Values in PURPLE
+        info_font = FONT20
+
+
+        # Left-Aligned Properties
+        left_x = LOG_ORIGIN_X + 10
+        left_y = GRID_ORIGIN_Y + 28 + SQUARE_SIZE * 2  # Below planet name
+        left_spacing = 22  # Vertical spacing
+
+        left_info = [
+            ("Orbit:", f"{planet.orbit_distance} AU"),
+            ("Atmos:", planet.atmosphere),
+            ("Temp:", f"{planet.temp}°C"),
+            ("Weather:", planet.weather),
+            ("Tectonics:", planet.tectonics),
+            ("Bio:", planet.bioUnits)
+        ]
+
+        # Modify the "Bio:" field dynamically
+        if planet.bioUnits >= 1:
+            left_info = [(key, "Harmless" if key == "Bio:" else value) for key, value in left_info]
+        else:
+            left_info = [(key, "None" if key == "Bio:" else value) for key, value in left_info]
+
+
+        for label, value in left_info:
+            x_value_offset = 70
+            if label == "Bio:":  x_value_offset = 30
+            label_text = info_font.render(f"{label}", True, LIGHT_BLUE)
+            value_text = info_font.render(f"{value}", True, PURPLE)
+            SCREEN.blit(label_text, (left_x, left_y))
+            SCREEN.blit(value_text, (left_x + x_value_offset, left_y))  # Value slightly offset to the right
+            left_y += left_spacing
+
+        # Right-Aligned Properties
+        right_x = LOG_ORIGIN_X + LOG_WIDTH - 110  # Align near the right edge
+        right_y = GRID_ORIGIN_Y + 28 + SQUARE_SIZE * 2  # Same vertical start as left
+        right_spacing = 22
+
+        right_info = [
+            ("Mass:", f"{planet.mass} e.s."),
+            ("Radius:", f"{planet.radius} e.s."),
+            ("Gravity:", f"{planet.gravity} g"),
+            ("Day:", f"{planet.day} days"),
+            ("Tilt:", f"{planet.axialTilt}°")
+        ]
+
+        for label, value in right_info:
+            label_text = info_font.render(label, True, LIGHT_BLUE)
+            value_text = info_font.render(value, True, PURPLE)
+            SCREEN.blit(label_text, (right_x, right_y))
+            SCREEN.blit(value_text, (right_x + 50, right_y))  # Offset values
+            right_y += right_spacing
 
 
 
@@ -5324,6 +5484,7 @@ def draw_all_to_screen(): # for use when in a prompt.
     global projectile_group
     global key_pressed
     draw_alert_info(SCREEN)
+    draw_orbital_scan()
     
     draw_sector_map()
     
@@ -5598,6 +5759,8 @@ def main():
 
         draw_alert_info(SCREEN)
 
+        draw_orbital_scan()
+
         draw_sector_map()
 
         for enemy in player.current_quadrant.enemies:
@@ -5632,6 +5795,7 @@ def main():
 
             SCREEN.fill(BLACK)
             draw_alert_info(SCREEN)
+            draw_orbital_scan()
     
             draw_sector_map()
             
