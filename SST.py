@@ -226,65 +226,66 @@ GRID_BACKGROUND = pygame.transform.scale(GRID_BACKGROUND, (GRID_SIZE * SQUARE_SI
 
 
 ALL_PLANET_IMAGES = [
-    {"name": "RAINBOW_IMAGE", "file": "rainbow.png"},
-    {"name": "AZURE_IMAGE", "file": "azure.png"},
-    {"name": "ACID_IMAGE", "file": "acid.png"},
-    {"name": "ALKALI_IMAGE", "file": "alkali.png"},
-    {"name": "AURIC_IMAGE", "file": "auric.png"},
-    {"name": "CARBIDE_IMAGE", "file": "carbide.png"},
-    {"name": "CRIMSON_IMAGE", "file": "crimson.png"},
-    {"name": "CIMMERIAN_IMAGE", "file": "cimmerian.png"},
-    {"name": "COPPER_IMAGE", "file": "copper.png"},
-    {"name": "CHLORINE_IMAGE", "file": "chlorine.png"},
-    {"name": "CHONDRITE_IMAGE", "file": "chondrite.png"},
-    {"name": "CYANIC_IMAGE", "file": "cyanic.png"},
-    {"name": "DUST_IMAGE", "file": "dust.png"},
-    {"name": "EMERALD_IMAGE", "file": "emerald.png"},
-    {"name": "FLOURESCENT_IMAGE", "file": "fluorescent.png"},
-    {"name": "GREEN_IMAGE", "file": "green.png"},
-    {"name": "HALIDE_IMAGE", "file": "halide.png"},
-    {"name": "HYDROCARBON_IMAGE", "file": "hydrocarbon.png"},
-    {"name": "IODINE_IMAGE", "file": "iodine.png"},
-    {"name": "INFRARED_IMAGE", "file": "infrared.png"},
-    {"name": "NOBLE_IMAGE", "file": "noble.png"},
-    {"name": "METAL_IMAGE", "file": "metal.png"},
-    {"name": "MAGMA_IMAGE", "file": "magma.png"},
-    {"name": "MAROON_IMAGE", "file": "maroon.png"},
-    {"name": "MAGNETIC_IMAGE", "file": "magnetic.png"},
-    {"name": "OPALESCENT_IMAGE", "file": "opalescent.png"},
-    {"name": "ORGANIC_IMAGE", "file": "organic.png"},
-    {"name": "OOLITE_IMAGE", "file": "oolite.png"},
-    {"name": "PELLUCID_IMAGE", "file": "pellucid.png"},
-    {"name": "PRIMORDIAL_IMAGE", "file": "primordial.png"},
-    {"name": "PURPLE_IMAGE", "file": "purple.png"},
-    {"name": "PLUTONIC_IMAGE", "file": "plutonic.png"},
-    {"name": "QUASI_DEGEN_IMAGE", "file": "quasidegenerate.png"},
-    {"name": "SAPPHIRE_IMAGE", "file": "sapphire.png"},
-    {"name": "RADIOACTIVE_IMAGE", "file": "radioactive.png"},
-    {"name": "REDUX_IMAGE", "file": "redux.png"},
-    {"name": "RUBY_IMAGE", "file": "ruby.png"},
-    {"name": "SHATTERED_IMAGE", "file": "shattered.png"},
-    {"name": "SELENIC_IMAGE", "file": "selenic.png"},
-    {"name": "SLAVE_IMAGE", "file": "slaveshield.png"},
-    {"name": "SUPERDENSE_IMAGE", "file": "superdense.png"},
-    {"name": "TREASURE_IMAGE", "file": "treasure.png"},
-    {"name": "VINYLOGOUS_IMAGE", "file": "vinylogous.png"},
-    {"name": "TELLURIC_IMAGE", "file": "telluric.png"},
-    {"name": "ULTRAMARINE_IMAGE", "file": "ultramarine.png"},
-    {"name": "ULTRAVIOLET_IMAGE", "file": "ultraviolet.png"},
-    {"name": "UREA_IMAGE", "file": "urea.png"},
-    {"name": "LANTHANIDE_IMAGE", "file": "lanthanide.png"},
-    {"name": "WATER_IMAGE", "file": "water.png"},
-    {"name": "XENOLITHIC_IMAGE", "file": "xenolithic.png"},
-    {"name": "YTTRIC_IMAGE", "file": "yttric.png"},
-    {"name": "BLUEGASIMAGE", "file": "bluegas.png"},
-    {"name": "GREENGASIMAGE", "file": "greengas.png"},
-    {"name": "GREYGASIMAGE", "file": "greygas.png"},
-    {"name": "PURPLEGASIMAGE", "file": "purplegas.png"},
-    {"name": "REDGASIMAGE", "file": "redgas.png"},
-    {"name": "VIOLETGASIMAGE", "file": "violetgas.png"},
-    {"name": "YELLOWGASIMAGE", "file": "yellowgas.png"},
+    {"name": "RAINBOW_IMAGE", "file": "rainbow.png", "type": "Rainbow"},
+    {"name": "AZURE_IMAGE", "file": "azure.png", "type": "Azure"},
+    {"name": "ACID_IMAGE", "file": "acid.png", "type": "Acid"},
+    {"name": "ALKALI_IMAGE", "file": "alkali.png", "type": "Alkali"},
+    {"name": "AURIC_IMAGE", "file": "auric.png", "type": "Auric"},
+    {"name": "CARBIDE_IMAGE", "file": "carbide.png", "type": "Carbide"},
+    {"name": "CRIMSON_IMAGE", "file": "crimson.png", "type": "Crimson"},
+    {"name": "CIMMERIAN_IMAGE", "file": "cimmerian.png", "type": "Cimmerian"},
+    {"name": "COPPER_IMAGE", "file": "copper.png", "type": "Copper"},
+    {"name": "CHLORINE_IMAGE", "file": "chlorine.png", "type": "Chlorine"},
+    {"name": "CHONDRITE_IMAGE", "file": "chondrite.png", "type": "Chondrite"},
+    {"name": "CYANIC_IMAGE", "file": "cyanic.png", "type": "Cyanic"},
+    {"name": "DUST_IMAGE", "file": "dust.png", "type": "Dust"},
+    {"name": "EMERALD_IMAGE", "file": "emerald.png", "type": "Emerald"},
+    {"name": "FLOURESCENT_IMAGE", "file": "fluorescent.png", "type": "Flourescent"},
+    {"name": "GREEN_IMAGE", "file": "green.png", "type": "Green"},
+    {"name": "HALIDE_IMAGE", "file": "halide.png", "type": "Halide"},
+    {"name": "HYDROCARBON_IMAGE", "file": "hydrocarbon.png", "type": "Hydrocarbon"},
+    {"name": "IODINE_IMAGE", "file": "iodine.png", "type": "Iodine"},
+    {"name": "INFRARED_IMAGE", "file": "infrared.png", "type": "Infrared"},
+    {"name": "NOBLE_IMAGE", "file": "noble.png", "type": "Noble"},
+    {"name": "METAL_IMAGE", "file": "metal.png", "type": "Metal"},
+    {"name": "MAGMA_IMAGE", "file": "magma.png", "type": "Magma"},
+    {"name": "MAROON_IMAGE", "file": "maroon.png", "type": "Maroon"},
+    {"name": "MAGNETIC_IMAGE", "file": "magnetic.png", "type": "Magnetic"},
+    {"name": "OPALESCENT_IMAGE", "file": "opalescent.png", "type": "Opalescent"},
+    {"name": "ORGANIC_IMAGE", "file": "organic.png", "type": "Organic"},
+    {"name": "OOLITE_IMAGE", "file": "oolite.png", "type": "Oolite"},
+    {"name": "PELLUCID_IMAGE", "file": "pellucid.png", "type": "Pellucid"},
+    {"name": "PRIMORDIAL_IMAGE", "file": "primordial.png", "type": "Primordial"},
+    {"name": "PURPLE_IMAGE", "file": "purple.png", "type": "Purple"},
+    {"name": "PLUTONIC_IMAGE", "file": "plutonic.png", "type": "Plutonic"},
+    {"name": "QUASI_DEGEN_IMAGE", "file": "quasidegenerate.png", "type": "Quasi-Degenerate"},
+    {"name": "SAPPHIRE_IMAGE", "file": "sapphire.png", "type": "Sapphire"},
+    {"name": "RADIOACTIVE_IMAGE", "file": "radioactive.png", "type": "Radioactive"},
+    {"name": "REDUX_IMAGE", "file": "redux.png", "type": "Redux"},
+    {"name": "RUBY_IMAGE", "file": "ruby.png", "type": "Ruby"},
+    {"name": "SHATTERED_IMAGE", "file": "shattered.png", "type": "Shattered"},
+    {"name": "SELENIC_IMAGE", "file": "selenic.png", "type": "Selenic"},
+    {"name": "SLAVE_IMAGE", "file": "slaveshield.png", "type": "Slave"},
+    {"name": "SUPERDENSE_IMAGE", "file": "superdense.png", "type": "Super-Dense"},
+    {"name": "TREASURE_IMAGE", "file": "treasure.png", "type": "Treasure"},
+    {"name": "VINYLOGOUS_IMAGE", "file": "vinylogous.png", "type": "Vinylogous"},
+    {"name": "TELLURIC_IMAGE", "file": "telluric.png", "type": "Telluric"},
+    {"name": "ULTRAMARINE_IMAGE", "file": "ultramarine.png", "type": "Ultramarine"},
+    {"name": "ULTRAVIOLET_IMAGE", "file": "ultraviolet.png", "type": "Ultraviolet"},
+    {"name": "UREA_IMAGE", "file": "urea.png", "type": "Urea"},
+    {"name": "LANTHANIDE_IMAGE", "file": "lanthanide.png", "type": "Lanthanide"},
+    {"name": "WATER_IMAGE", "file": "water.png", "type": "Water"},
+    {"name": "XENOLITHIC_IMAGE", "file": "xenolithic.png", "type": "Xenolithic"},
+    {"name": "YTTRIC_IMAGE", "file": "yttric.png", "type": "Yttric"},
+    {"name": "BLUEGASIMAGE", "file": "bluegas.png", "type": "Blue Gas Giant"},
+    {"name": "GREENGASIMAGE", "file": "greengas.png", "type": "Green Gas Giant"},
+    {"name": "GREYGASIMAGE", "file": "greygas.png", "type": "Grey Gas Giant"},
+    {"name": "PURPLEGASIMAGE", "file": "purplegas.png", "type": "Purple Gas Giant"},
+    {"name": "REDGASIMAGE", "file": "redgas.png", "type": "Red Gas Giant"},
+    {"name": "VIOLETGASIMAGE", "file": "violetgas.png", "type": "Violet Gas Giant"},
+    {"name": "YELLOWGASIMAGE", "file": "yellowgas.png", "type": "Yellow Gas Giant"},
 ]
+
 
 CRUISER_CAPTAIN_000 = pygame.image.load("cruiser-cap-000.png").convert_alpha() 
 CRUISER_CAPTAIN_000 = pygame.transform.scale(CRUISER_CAPTAIN_000, (CAPTAIN_BOX_WIDTH, CAPTAIN_BOX_HEIGHT))  # Scale to box size
@@ -2774,12 +2775,14 @@ class Planet:
         self.quadrant_x = quadrant_x
         self.quadrant_y = quadrant_y
         self.name = name
+
         self.size = random.randint(1, 10)  # Size (e.g., 1 = small, 10 = massive)
 
 
-        random_planet = random.choice(ALL_PLANET_IMAGES)
-
-        self.image = pygame.image.load(random_planet["file"]).convert_alpha()
+        # Select a random planet image from the list
+        selected_planet = random.choice(ALL_PLANET_IMAGES)
+        self.image = pygame.image.load(selected_planet["file"]).convert_alpha()
+        self.type = selected_planet["type"]
         planet_image_size_factor = self.size / 10
         planet_image_size_factor = max(0.5, min(0.80, planet_image_size_factor)) 
         self.image = pygame.transform.scale(self.image, (SQUARE_SIZE*planet_image_size_factor, SQUARE_SIZE*planet_image_size_factor))  # Scale to grid square size 
@@ -2795,30 +2798,39 @@ class Planet:
         self.mined_out = False
 
         ## INFO & DANGERS ##
+        #Cluster    Star    X   Y   DistSol  StarColor   StarSize    Fleet     Planet   Type    Hazard  Tectonics   Weather Thermal BioHazard   BioUnits    MinValue    MinVolume   Fuel    AxialTilt   Density Radius  Gravity Temp    Day Atmosphere  LifeChance  DistFromStar    hasStarbase isEnslaved                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+        #Sol       Prime  175.2 145    0      yellow       dwarf      None      Earth    Water   2          2          2       1        1          69  315 100 2   23  100 100 100 22  240 50  0   2612    yes yes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+
 
         self.orbit_distance     = 1.0 # orbit_distance
-        self.atmosphere         = 1.0 #atmosphere
-        self.temp               = 1.0 #temp # self.thermal       = thermal
-        self.weather            = 1.0 #weather # self.hazard        = hazard
-        self.tectonics          = 1.0 #tectonics
+        self.atmosphere         = 50.0 #atmosphere
+
+
+
+        self.temp               = self.generate_weighted_temperature()   # 22
+        self.thermal            = 1.0
+
+        INTENSITY = [1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0]
+        self.weather            = random.choice(INTENSITY) # 2.0 weather # self.hazard        = hazard
+        self.tectonics          = random.choice(INTENSITY) #2.0tectonics
 
         self.mass               = 1.0 #mass
         self.radius             = 1.0 #radius
         self.gravity            = 1.0 #gravity
         self.day                = 1.0 #day
-        self.axialTilt          = 1.0 #axialTilt
+        self.axialTilt          = 23.0 #axialTilt
 
         
         
         # RESOUCES 
-        self.bioHazard     = 1 #bioHazard 
-        self.bioUnits      = 0 #bioUnits
-        self.currentBioUnits = 1 #self.bioUnits
+        self.bioHazard          = 1 #bioHazard 
+        self.bioUnits           = 69 #bioUnits
+        self.currentBioUnits    = self.bioUnits
 
-        self.startMinValue      = 1 #minValue
-        self.startMinVolume     = 1 #minVolume
-        self.currentMinValue = 1 #minValue
-        self.currentMinVolume =1 # minVolume
+        self.startMinValue      = 315 #minValue
+        self.startMinVolume     = 100 #minVolume
+        self.currentMinValue    = self.startMinValue #minValue
+        self.currentMinVolume   = self.startMinVolume # minVolume
 
 
         print("planet init complete")
@@ -2839,6 +2851,17 @@ class Planet:
         else:
             print(f"generated name {base_name}")
             return f"{base_name}"
+
+    def generate_weighted_temperature(self):
+        mean_temp = -64.74  # Average planet temp
+        std_dev = 200       # Spread control
+        min_temp, max_temp = -252, 5179  # Temperature range
+
+        # Generate temp with normal distribution
+        temp = random.gauss(mean_temp, std_dev)
+
+        # Clamp and round to 1 decimal place
+        return round(max(min(temp, max_temp), min_temp), 1)
 
     def mine_dilithium(self):
         mined_crystals = 0
@@ -5414,6 +5437,12 @@ def draw_orbital_scan():
         name_x = LOG_ORIGIN_X + (LOG_WIDTH // 2) - (name_text.get_width() // 2)  # Centered
         name_y = GRID_ORIGIN_Y + 10 + SQUARE_SIZE * 2
         SCREEN.blit(name_text, (name_x, name_y))
+
+        # Show the planet's type
+        type_text = FONT20.render(f"{planet.type} World", True, GREEN)
+        type_x = LOG_ORIGIN_X + (LOG_WIDTH // 2) - (type_text.get_width() // 2)  # Centered
+        type_y = GRID_ORIGIN_Y + 10 + SQUARE_SIZE * 2 + 20
+        SCREEN.blit(type_text, (type_x, type_y))
 
         # Center the arc within the box
         arc_width, arc_height = 200, 200
